@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "hubbro",
+      "runtimeExecutable": "/Users/danilasimonov/HUB-Bro/.venv/bin/python",
+      "runtimeArgs": ["-m", "uvicorn", "app.main:app", "--app-dir", "/Users/danilasimonov/HUB-Bro/backend", "--port", "8000"],
+      "port": 8000
+    }
+  ]
+}
