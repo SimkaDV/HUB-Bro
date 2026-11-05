@@ -151,3 +151,36 @@ def _update_batch(batch: PrintBatch) -> None:
         batch.status = "failed"
     else:
         batch.status = "printed"
+
+
+def matches(order: Order, filters: dict) -> bool:
+    """Подходит ли заказ под фильтр пресета. Пустой фильтр — подходит всё."""
+    f = filters or {}
+    if f.get("shop_id") and order.shop_id != f["shop_id"]:
+        return False
+    if f.get("pvz_name") and order.pvz_name != f["pvz_name"]:
+        return False
+    products = [i.product for i in order.items if i.product]
+    if f.get("model") and not any(p.model == f["model"] for p in products):
+        return False
+    if f.get("size") and not any(p.size == f["size"] for p in products):
+        return False
+    if f.get("deadline_hours"):
+        if not order.deadline_at or order.deadline_at > now() + timedelta(hours=f["deadline_hours"]):
+            return False
+    return True
+
+
+def ready_orders(db: Session, user: User, filters: dict | None = None) -> list[Order]:
+    """Готовые к печати заказы вне активных партий, срочные первыми."""
+    q = db.query(Order).filter(Order.internal_status.in_(S.PRINTABLE))
+    if user.shop_id is not None:
+        q = q.filter(Order.shop_id == user.shop_id)
+    busy = {oid for (oid,) in db.query(PrintBatchOrder.order_id).join(PrintBatch, PrintBatch.id == PrintBatchOrder.batch_id)
+            .filter(PrintBatch.status.in_(S.BATCH_ACTIVE))}
+    orders = q.order_by(Order.deadline_at.is_(None), Order.deadline_at, Order.id).all()
+    return [o for o in orders if o.id not in busy and valid_label(o) and matches(o, filters or {})]
+
+
+def retry_all_failed(db: Session, user: User) -> int:
+    return sum(retry_failed(db, user, b) for b in db.query(PrintBatch).filter_by(status="failed"))

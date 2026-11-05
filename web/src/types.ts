@@ -36,7 +36,7 @@ export type Job = {
 
 export type Batch = {
   id: number; code: string; status: string; created_at: string; closed_at: string | null;
-  station_id: number | null; printer_name: string | null; orders_count: number;
+  station_id: number | null; printer_name: string | null; orders_count: number; filters: Record<string, unknown>;
   jobs: Record<Job["status"], number>; orders?: Order[]; job_list?: Job[];
 };
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, getToken, setToken } from "./api";
 import { useApi, useHashRoute } from "./hooks";
 import { Batches } from "./pages/Batches";
+import { Console } from "./pages/Console";
 import { Fulfillment } from "./pages/Fulfillment";
 import { Login } from "./pages/Login";
 import { Orders } from "./pages/Orders";
@@ -11,6 +12,7 @@ import { Stations } from "./pages/Stations";
 import type { User } from "./types";
 
 const PAGES: Record<string, { title: string; el: () => JSX.Element }> = {
+  console: { title: "Пульт", el: Console },
   fulfillment: { title: "Комплектация", el: Fulfillment },
   orders: { title: "Заказы", el: Orders },
   batches: { title: "Партии", el: Batches },
@@ -46,7 +48,7 @@ export function App() {
   if (!checked) return null;
   if (!user) return <Login onLogin={setUser} />;
 
-  const Page = (PAGES[route] ?? PAGES.fulfillment).el;
+  const Page = (PAGES[route] ?? PAGES.console).el;
   return (
     <div className="shell">
       <nav className="side">

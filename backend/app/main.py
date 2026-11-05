@@ -11,7 +11,7 @@ from starlette.concurrency import run_in_threadpool
 
 from .config import ROOT, settings
 from .db import Base, SessionLocal, engine
-from .routers import agent, auth, batches, catalog, fulfillment, integrations, labels, orders, stations
+from .routers import agent, auth, batches, catalog, fulfillment, integrations, labels, orders, presets, stations
 from .seed import seed
 from .services.orders import sync_all
 
@@ -50,7 +50,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="HUB BRO", version="0.1.0", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_methods=["*"], allow_headers=["*"])
 
-for r in (auth, orders, fulfillment, catalog, batches, labels, stations, agent, integrations):
+for r in (auth, orders, fulfillment, catalog, batches, labels, stations, agent, integrations, presets):
     app.include_router(r.router)
 
 

@@ -104,3 +104,30 @@ def test_operator_cannot_manage_stations(client):
     op.headers["Authorization"] = f"Bearer {tok}"
     assert op.post("/api/stations", json={"name": "x"}).status_code == 403
     assert op.get("/api/orders").status_code == 200
+
+
+def test_console_presets(client, station):
+    station_id, agent = station
+    c = client.get("/api/console").json()
+    assert c["ready"] > 0 and c["presets"] == []
+    shop = client.get("/api/shops").json()[0]
+    pid = client.post("/api/presets", json={"name": "BRO", "filters": {"shop_id": shop["id"]}}).json()["id"]
+    c = client.get("/api/console").json()
+    expected = c["ready_by_shop"][str(shop["id"])]
+    assert c["presets"][0]["ready"] == expected
+
+    b = client.post("/api/console/batch", json={"preset_id": pid}).json()
+    prev = client.get(f"/api/print-batches/{b['id']}/preview").json()
+    assert prev["labels_count"] == expected and list(prev["summary"]["shop"]) == [shop["name"]]
+    # повторно те же заказы не попадут
+    assert client.post("/api/console/batch", json={"preset_id": pid}).status_code == 409
+
+    rest = client.get("/api/console").json()["ready"]
+    b2 = client.post("/api/console/batch", json={}).json()
+    assert client.get(f"/api/print-batches/{b2['id']}").json()["orders_count"] == rest
+
+    client.post(f"/api/print-batches/{b['id']}/print", json={"station_id": station_id})
+    while (job := agent.get("/api/agent/jobs/next")).status_code == 200:
+        agent.post(f"/api/agent/jobs/{job.json()['id']}/result", json={"ok": False, "error": "x"})
+    assert client.get("/api/console").json()["failed_jobs"] == expected
+    assert client.post("/api/console/retry-failed").json()["requeued"] == expected

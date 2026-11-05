@@ -230,3 +230,15 @@ class IntegrationEvent(Base):
     message: Mapped[str | None] = mapped_column(Text)
     error: Mapped[bool] = mapped_column(Boolean, default=False)
     received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class PrintPreset(Base):
+    """Сохранённый фильтр печати для «Пульта». Общий для всех компьютеров."""
+    __tablename__ = "print_presets"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100))
+    # shop_id, model, size, pvz_name, deadline_hours — все необязательные
+    filters: Mapped[dict] = mapped_column(JSON, default=dict)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)

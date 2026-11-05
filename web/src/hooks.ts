@@ -34,7 +34,7 @@ export function useApi<T>(path: string | null, refreshMs?: number) {
 }
 
 export function useHashRoute(): [string, (r: string) => void] {
-  const get = () => window.location.hash.replace(/^#\/?/, "") || "fulfillment";
+  const get = () => window.location.hash.replace(/^#\/?/, "") || "console";
   const [route, setRoute] = useState(get);
   useEffect(() => {
     const on = () => setRoute(get());
