@@ -14,6 +14,8 @@
   --success-text: #3e4f22;
   --warning-bg: #e4d39f;
   --warning-text: #6a4f0e;
+  --neutral-bg: #dcd9cf;
+  --neutral-text: #4a473f;
 
   /* Цифры остатка на чёрных чипах склада */
   --stock-zero: #8a877d;

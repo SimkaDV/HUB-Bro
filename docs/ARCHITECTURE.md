@@ -17,6 +17,7 @@ web/src/
 │   ├── stock/            Склад
 │   └── labels/           Расклейка
 └── shared/               то, что используется в нескольких разделах
+    ├── orders/           заказы: типы, статусы, тестовые данные, useOrders() — их читают заказы, комплектация, склад
     ├── ui/               базовые компоненты: Button, Card, Collapse, Input, PageHeader, StatusBadge
     └── styles/           tokens.css (цвета, отступы, скругления), global.css
 ```

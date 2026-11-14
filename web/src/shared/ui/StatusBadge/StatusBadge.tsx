@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import styles from "./StatusBadge.module.css";
 
-export type StatusTone = "danger" | "success" | "warning";
+export type StatusTone = "danger" | "success" | "warning" | "neutral";
 
 type Props = {
   tone: StatusTone;
