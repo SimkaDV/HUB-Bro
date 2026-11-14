@@ -23,7 +23,7 @@ function size(name: string, stock: [string, number][], units: UnitRow[] = []): S
   };
 }
 
-type MockModel = Omit<Model, "batches"> & { batches: Omit<Batch, "delivered" | "addedAt">[] };
+type MockModel = Omit<Model, "batches"> & { batches: Omit<Batch, "delivered" | "addedAt" | "total">[] };
 
 const MODELS: MockModel[] = [
   {
@@ -91,15 +91,15 @@ const MODELS: MockModel[] = [
 // «Пришло» в каждой поставке = что лежит на полке + что уже ушло по заказам.
 export const MOCK_MODELS: Model[] = MODELS.map((m) => ({
   ...m,
-  batches: m.batches.map((b) => ({
-    ...b,
-    addedAt: `${b.date}T12:00:00`,
-    delivered: m.sizes
+  batches: m.batches.map((b) => {
+    const delivered = m.sizes
       .map((s) => ({
         size: s.size,
         qty:
           (s.stock.find((x) => x.batchId === b.id)?.qty ?? 0) + s.units.filter((u) => u.batchId === b.id).length,
       }))
-      .filter((d) => d.qty > 0),
-  })),
+      .filter((d) => d.qty > 0);
+    const qty = delivered.reduce((sum, d) => sum + d.qty, 0);
+    return { ...b, addedAt: `${b.date}T12:00:00`, delivered, total: b.price * qty };
+  }),
 }));

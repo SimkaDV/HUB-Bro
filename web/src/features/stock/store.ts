@@ -6,7 +6,8 @@ import type { DeliveryDraft, DeliveryInput, Model } from "./types";
 // Пока нет бэкенда, склад живёт в браузере (localStorage), чтобы поставки и черновики
 // не пропадали при обновлении страницы. Потом здесь будут запросы к API.
 
-const STORAGE_KEY = "hubbro.stock.v1";
+// v2: у поставки сумма (total), в черновиках total и step вместо price.
+const STORAGE_KEY = "hubbro.stock.v2";
 
 type StockState = { models: Model[]; drafts: DeliveryDraft[] };
 

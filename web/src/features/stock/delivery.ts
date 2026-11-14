@@ -30,15 +30,22 @@ export function emptyLine(model?: Model): DeliveryLine {
     key: newId(),
     modelId: model?.id ?? null,
     newModel: { name: "", category: "" },
-    price: "",
+    total: "",
+    step: 1,
     sizes: model ? model.sizes.map((s) => s.size).sort(compareSizes) : [],
     qty: {},
   };
 }
 
 export const lineQty = (line: DeliveryLine) => line.sizes.reduce((sum, s) => sum + (line.qty[s] ?? 0), 0);
-export const linePrice = (line: DeliveryLine) => Number(line.price.replace(/\s/g, "").replace(",", "."));
-export const lineSum = (line: DeliveryLine) => (linePrice(line) || 0) * lineQty(line);
+/** Сумма за поставку из поля ввода; NaN, если вписано не число. */
+export const lineTotal = (line: DeliveryLine) => Number(line.total.replace(/\s/g, "").replace(",", "."));
+/** Цена за штуку = сумма / штук, до копеек; 0, пока нет суммы или штук. */
+export function unitPrice(line: DeliveryLine) {
+  const total = lineTotal(line);
+  const qty = lineQty(line);
+  return qty > 0 && total > 0 ? Math.round((total / qty) * 100) / 100 : 0;
+}
 
 export function lineModelName(line: DeliveryLine, models: Model[]) {
   return line.modelId ? (models.find((m) => m.id === line.modelId)?.name ?? "") : line.newModel.name.trim();
@@ -53,8 +60,8 @@ export function lineProblems(line: DeliveryLine, models: Model[]): string[] {
     else if (models.some((m) => m.name.toLowerCase() === name.toLowerCase())) problems.push("Такая модель уже есть, выберите её из списка");
     if (!line.newModel.category.trim()) problems.push("Укажите категорию");
   }
-  const price = linePrice(line);
-  if (!line.price.trim() || !Number.isFinite(price) || price <= 0) problems.push("Впишите цену за штуку");
+  const total = lineTotal(line);
+  if (!line.total.trim() || !Number.isFinite(total) || total <= 0) problems.push("Впишите сумму поставки");
   if (lineQty(line) === 0) problems.push("Добавьте хотя бы одну штуку");
   return problems;
 }
@@ -116,7 +123,8 @@ export function applyDelivery(models: Model[], input: DeliveryInput, now = new D
       name: uniqueBatchName(model, `${shortModelName(model.name)} ${formatDay(input.date)}`),
       date: input.date,
       from: input.from.trim(),
-      price: linePrice(line),
+      total: lineTotal(line),
+      price: unitPrice(line),
       delivered,
       addedAt: now,
     };

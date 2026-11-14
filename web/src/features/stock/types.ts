@@ -1,12 +1,15 @@
 // Модель данных склада. Описание — docs/WAREHOUSE.md
 
-/** Поставка (= партия): одна модель за один день, одна цена на всю поставку. */
+/** Поставка (= партия): одна модель за один день, одна сумма на всю поставку. */
 export type Batch = {
   id: string;
   name: string;
   /** Дата прихода, YYYY-MM-DD. */
   date: string;
   from: string;
+  /** Сколько заплатили за всю поставку, ₽. */
+  total: number;
+  /** Цена за штуку = total / штук, до копеек. */
   price: number;
   /** Сколько каких размеров пришло — для истории и проверки отмены. */
   delivered: { size: string; qty: number }[];
@@ -48,8 +51,10 @@ export type DeliveryLine = {
   /** null — новая модель, создаётся прямо из поставки. */
   modelId: string | null;
   newModel: { name: string; category: string };
-  /** Строкой, как в поле ввода: пусто — ещё не вписали. */
-  price: string;
+  /** Сумма за всю поставку, строкой как в поле ввода: пусто — ещё не вписали. */
+  total: string;
+  /** На сколько штук прибавляют кнопки −/+: 1, 2, 5, 10 или своё. */
+  step: number;
   sizes: string[];
   qty: Record<string, number>;
 };

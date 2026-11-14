@@ -53,6 +53,16 @@ export function StockOverview({ models: source }: Props) {
     setFocus({ modelId, size, nonce: Date.now() });
   };
 
+  // «+N» на плитке: открыть модель и плавно прокрутить к её списку размеров.
+  const detailRef = useRef<HTMLDivElement>(null);
+  const expand = (modelId: string) => {
+    if (modelId !== selectedId) select(modelId);
+    window.setTimeout(
+      () => detailRef.current?.scrollIntoView({ behavior: reducedMotion() ? "auto" : "smooth", block: "start" }),
+      modelId === selectedId ? 0 : SWITCH_FADE_MS + 50,
+    );
+  };
+
   return (
     <>
       <div className={styles.legend}>
@@ -70,11 +80,13 @@ export function StockOverview({ models: source }: Props) {
             model={m}
             selected={m.id === selectedId}
             onSelect={() => select(m.id === selectedId ? null : m.id)}
+            onExpand={() => expand(m.id)}
             onSizeClick={(size) => openSize(m.id, size)}
           />
         ))}
       </div>
 
+      <div ref={detailRef} className={styles.detailAnchor} />
       <Collapse open={isOpen}>
         {shown && (
           <ModelDetail

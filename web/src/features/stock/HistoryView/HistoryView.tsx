@@ -48,7 +48,7 @@ export function HistoryView({ models, onCancel }: Props) {
             </div>
             <div className={styles.foot}>
               <span>
-                <b>+{qty} шт.</b> на {formatRub(qty * batch.price)}
+                <b>+{qty} шт.</b> на {formatRub(batch.total)}
               </span>
               {!batch.cancelledAt &&
                 (cancellable ? (

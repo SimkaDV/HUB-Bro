@@ -10,12 +10,12 @@ import {
   isInputReady,
   isModelVisible,
   lineModelName,
-  linePrice,
   lineProblems,
   lineQty,
-  lineSum,
+  lineTotal,
   shortModelName,
   todayIso,
+  unitPrice,
 } from "../delivery";
 import { formatRub } from "../stock";
 import type { DeliveryDraft, DeliveryInput, Model } from "../types";
@@ -106,7 +106,7 @@ export function DeliveryDialog({ models, drafts, onSubmit, onSaveDraft, onDelete
   };
 
   const totalQty = input.lines.reduce((s, l) => s + lineQty(l), 0);
-  const totalSum = input.lines.reduce((s, l) => s + lineSum(l), 0);
+  const totalSum = input.lines.reduce((s, l) => s + (lineTotal(l) || 0), 0);
 
   return (
     <div className={`${styles.overlay} ${closing ? styles.closing : ""}`} onMouseDown={requestClose}>
@@ -176,6 +176,30 @@ export function DeliveryDialog({ models, drafts, onSubmit, onSaveDraft, onDelete
                 </datalist>
               </div>
 
+              <section className={styles.picker}>
+                <h3>{input.lines.length === 0 ? "Какая модель пришла?" : "Добавить ещё модель"}</h3>
+                <p className={styles.hint}>Каждая модель станет отдельной поставкой. Новая карточка появляется сверху.</p>
+                <div className={styles.models}>
+                  {pickable.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      className={styles.modelBtn}
+                      onClick={() => update({ lines: [emptyLine(m), ...input.lines] })}
+                    >
+                      {m.name}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className={`${styles.modelBtn} ${styles.newModelBtn}`}
+                    onClick={() => update({ lines: [emptyLine(), ...input.lines] })}
+                  >
+                    + Новая модель
+                  </button>
+                </div>
+              </section>
+
               {input.lines.map((line) => (
                 <DeliveryLineCard
                   key={line.key}
@@ -185,30 +209,6 @@ export function DeliveryDialog({ models, drafts, onSubmit, onSaveDraft, onDelete
                   onRemove={() => update({ lines: input.lines.filter((l) => l.key !== line.key) })}
                 />
               ))}
-
-              <section className={styles.picker}>
-                <h3>{input.lines.length === 0 ? "Какая модель пришла?" : "Добавить ещё модель"}</h3>
-                <p className={styles.hint}>Каждая модель станет отдельной поставкой.</p>
-                <div className={styles.models}>
-                  {pickable.map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      className={styles.modelBtn}
-                      onClick={() => update({ lines: [...input.lines, emptyLine(m)] })}
-                    >
-                      {m.name}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    className={`${styles.modelBtn} ${styles.newModelBtn}`}
-                    onClick={() => update({ lines: [...input.lines, emptyLine()] })}
-                  >
-                    + Новая модель
-                  </button>
-                </div>
-              </section>
             </div>
           ) : (
             <div className={styles.stepBody} key="review">
@@ -225,7 +225,7 @@ export function DeliveryDialog({ models, drafts, onSubmit, onSaveDraft, onDelete
                       {!line.modelId && <StatusBadge tone="warning">Новая модель</StatusBadge>}
                     </div>
                     <p className={styles.reviewMeta}>
-                      Поставка «{batchNameFor(line, input.date, models)}» · {formatRub(linePrice(line))} за шт.
+                      Поставка «{batchNameFor(line, input.date, models)}» · {formatRub(unitPrice(line))} за шт.
                     </p>
                     <div className={styles.reviewSizes}>
                       {line.sizes
@@ -237,7 +237,7 @@ export function DeliveryDialog({ models, drafts, onSubmit, onSaveDraft, onDelete
                         ))}
                     </div>
                     <p className={styles.reviewTotal}>
-                      <b>{lineQty(line)} шт.</b> · {formatRub(lineSum(line))}
+                      <b>{lineQty(line)} шт.</b> на {formatRub(lineTotal(line))}
                     </p>
                     {dup && (
                       <div className={styles.dup}>

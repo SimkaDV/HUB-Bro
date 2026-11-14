@@ -54,16 +54,27 @@
   margin-top: var(--space-1);
 }
 
-/* «+N» пропускает клик к плитке: откроется вся модель. */
+/* «+N» — открыть модель со всеми размерами. Ведёт себя как чипы размеров. */
 .more {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 36px;
+  border: none;
   border-radius: 7px;
   background: var(--button);
   color: var(--on-button);
+  font-family: inherit;
   font-size: 12px;
   font-weight: 600;
-  pointer-events: none;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.more:hover { transform: scale(1.08); }
+.more:active { transform: scale(0.96); }
+.more:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .more { transition: none; }
 }

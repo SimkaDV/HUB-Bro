@@ -63,7 +63,139 @@
 .remove:hover { background: var(--bg); color: var(--text); }
 
 .onCard { background: var(--bg); }
-.price { max-width: 200px; }
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-3) var(--space-6);
+}
+
+.price {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 220px;
+  max-width: 100%;
+}
+
+.unit {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.stepBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stepLabel {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.stepBtn,
+.stepInput {
+  height: var(--control-height);
+  min-width: 44px;
+  border: 2px solid transparent;
+  border-radius: var(--radius-button);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  text-align: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.stepBtn { cursor: pointer; }
+.stepInput { width: 72px; }
+.stepInput::placeholder { color: var(--text-secondary); font-weight: 400; }
+.stepInput:focus { outline: none; border-color: var(--text); }
+
+.stepActive {
+  background: var(--button);
+  color: var(--on-button);
+}
+
+.stepInput.stepActive::placeholder { color: var(--on-button); }
+
+/* «Очистить»: круглая кнопка в одном ряду с кнопками шага. */
+.clearBlock {
+  position: relative;
+  margin-left: var(--space-2);
+}
+
+.clearBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height);
+  height: var(--control-height);
+  border: none;
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+
+.clearBtn:hover:not(:disabled) { background: var(--danger-bg); color: var(--danger-text); }
+.clearBtn:active:not(:disabled) { transform: scale(0.94); }
+.clearBtn:disabled { opacity: 0.35; cursor: default; }
+.clearBtn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+.popover {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 240px;
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--button);
+  color: var(--on-button);
+  font-size: 15px;
+  animation: pop 0.18s ease-out;
+}
+
+@keyframes pop {
+  from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+}
+
+.popoverActions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.popoverYes,
+.popoverNo {
+  flex: 1;
+  height: 40px;
+  border: none;
+  border-radius: var(--radius-button);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.popoverYes { background: var(--danger-bg); color: var(--danger-text); }
+.popoverNo { background: var(--bg); color: var(--text); }
+
+@media (prefers-reduced-motion: reduce) {
+  .popover { animation: none; }
+  .clearBtn { transition: none; }
+}
 
 .sizes {
   display: grid;

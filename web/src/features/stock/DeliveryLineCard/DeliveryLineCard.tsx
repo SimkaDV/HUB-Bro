@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Input } from "@/shared/ui";
-import { categorySizes, lineQty, lineSum } from "../delivery";
+import { categorySizes, lineQty, lineTotal, unitPrice } from "../delivery";
 import { compareSizes, formatRub } from "../stock";
 import type { DeliveryLine, Model } from "../types";
 import styles from "./DeliveryLineCard.module.css";
@@ -12,9 +12,16 @@ type Props = {
   onRemove: () => void;
 };
 
-/** Одна модель в поставке: цена и сколько каких размеров пришло. */
+// Готовые шаги для кнопок −/+; рядом можно вписать своё.
+const STEPS = [1, 2, 5, 10];
+
+/** Одна модель в поставке: сумма, шаг и сколько каких размеров пришло. */
 export function DeliveryLineCard({ line, models, onChange, onRemove }: Props) {
   const [newSize, setNewSize] = useState("");
+  const [customStep, setCustomStep] = useState(STEPS.includes(line.step) ? "" : String(line.step));
+  const [confirmClear, setConfirmClear] = useState(false);
+  // «Очистить» обнуляет сумму, шаг и количества; модель и список размеров остаются.
+  const hasData = line.total.trim() !== "" || line.step !== 1 || lineQty(line) > 0;
   const model = models.find((m) => m.id === line.modelId);
   const categories = [...new Set(models.map((m) => m.category))];
   const suggested = model
@@ -75,15 +82,88 @@ export function DeliveryLineCard({ line, models, onChange, onRemove }: Props) {
         </button>
       </div>
 
-      <Input
-        id={`price-${line.key}`}
-        label="Цена за штуку, ₽"
-        inputMode="decimal"
-        placeholder="1 450"
-        className={`${styles.onCard} ${styles.price}`}
-        value={line.price}
-        onChange={(e) => onChange({ ...line, price: e.target.value.replace(/[^\d\s.,]/g, "") })}
-      />
+      <div className={styles.controls}>
+        <div className={styles.price}>
+          <Input
+            id={`total-${line.key}`}
+            label="Сумма поставки, ₽"
+            inputMode="decimal"
+            placeholder="30 000"
+            className={styles.onCard}
+            value={line.total}
+            onChange={(e) => onChange({ ...line, total: e.target.value.replace(/[^\d\s.,]/g, "") })}
+          />
+          <span className={styles.unit}>
+            {unitPrice(line) > 0 ? `≈ ${formatRub(unitPrice(line))} за шт.` : "Цена за штуку посчитается сама"}
+          </span>
+        </div>
+
+        <div className={styles.stepBlock}>
+          <span className={styles.stepLabel}>Шаг −/+</span>
+          <div className={styles.steps}>
+            {STEPS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                className={`${styles.stepBtn} ${line.step === s && !customStep ? styles.stepActive : ""}`}
+                onClick={() => {
+                  setCustomStep("");
+                  onChange({ ...line, step: s });
+                }}
+              >
+                {s}
+              </button>
+            ))}
+            <input
+              className={`${styles.stepInput} ${customStep ? styles.stepActive : ""}`}
+              inputMode="numeric"
+              placeholder="своё"
+              aria-label="Свой шаг"
+              value={customStep}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, "").slice(0, 3);
+                setCustomStep(value);
+                onChange({ ...line, step: Number(value) || 1 });
+              }}
+            />
+            <div className={styles.clearBlock}>
+              <button
+                type="button"
+                className={styles.clearBtn}
+                onClick={() => setConfirmClear(true)}
+                disabled={!hasData}
+                aria-label="Очистить карточку"
+                title="Очистить"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
+                </svg>
+              </button>
+              {confirmClear && (
+                <div className={styles.popover} role="alertdialog" aria-label="Вы уверены?">
+                  <p>Вы уверены? Сумма и все количества в карточке обнулятся.</p>
+                  <div className={styles.popoverActions}>
+                    <button
+                      type="button"
+                      className={styles.popoverYes}
+                      onClick={() => {
+                        setCustomStep("");
+                        onChange({ ...line, total: "", step: 1, qty: {} });
+                        setConfirmClear(false);
+                      }}
+                    >
+                      Да
+                    </button>
+                    <button type="button" className={styles.popoverNo} autoFocus onClick={() => setConfirmClear(false)}>
+                      Нет
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {line.sizes.length > 0 && (
         <div className={styles.sizes}>
@@ -93,7 +173,12 @@ export function DeliveryLineCard({ line, models, onChange, onRemove }: Props) {
               <div key={s} className={`${styles.size} ${value > 0 ? styles.filled : ""}`}>
                 <span className={styles.sizeName}>{s}</span>
                 <div className={styles.stepper}>
-                  <button type="button" onClick={() => setQty(s, value - 1)} disabled={value === 0} aria-label={`Убавить ${s}`}>
+                  <button
+                    type="button"
+                    onClick={() => setQty(s, value - line.step)}
+                    disabled={value === 0}
+                    aria-label={`Убавить ${s} на ${line.step}`}
+                  >
                     −
                   </button>
                   <input
@@ -104,7 +189,7 @@ export function DeliveryLineCard({ line, models, onChange, onRemove }: Props) {
                     onFocus={(e) => e.target.select()}
                     onChange={(e) => setQty(s, Number(e.target.value.replace(/\D/g, "")) || 0)}
                   />
-                  <button type="button" onClick={() => setQty(s, value + 1)} aria-label={`Прибавить ${s}`}>
+                  <button type="button" onClick={() => setQty(s, value + line.step)} aria-label={`Прибавить ${s} на ${line.step}`}>
                     +
                   </button>
                 </div>
@@ -149,7 +234,8 @@ export function DeliveryLineCard({ line, models, onChange, onRemove }: Props) {
 
       <p className={styles.total}>
         <b>{qty} шт.</b>
-        {lineSum(line) > 0 && <> · {formatRub(lineSum(line))}</>}
+        {lineTotal(line) > 0 && <> · {formatRub(lineTotal(line))}</>}
+        {unitPrice(line) > 0 && <> · {formatRub(unitPrice(line))} за шт.</>}
       </p>
     </section>
   );

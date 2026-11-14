@@ -26,3 +26,6 @@
   gap: var(--space-3);
   margin-bottom: var(--space-6);
 }
+
+/* Точка, к которой прокручиваем при клике на «+N». */
+.detailAnchor { scroll-margin-top: var(--space-6); }

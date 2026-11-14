@@ -78,7 +78,9 @@ export function SizeRow({ model, sizeStock, focusNonce }: Props) {
               <span className={styles.qty}>{s.qty} шт.</span>
               <StatusBadge tone="success">На складе</StatusBadge>
               <span>«{batch(s.batchId).name}»</span>
-              <span className={styles.secondary}>{formatRub(batch(s.batchId).price)}</span>
+              {/* Сначала сколько стоит весь остаток этой поставки, потом цена за штуку. */}
+              <span className={styles.value}>{formatRub(Math.round(s.qty * batch(s.batchId).price * 100) / 100)}</span>
+              <span className={styles.secondary}>{formatRub(batch(s.batchId).price)} за шт.</span>
             </div>
           ))}
           {visible.map(unitRow)}

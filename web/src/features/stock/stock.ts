@@ -68,4 +68,4 @@ export function modelsByAttention(models: Model[]): Model[] {
   });
 }
 
-export const formatRub = (n: number) => `${n.toLocaleString("ru-RU")} ₽`;
+export const formatRub = (n: number) => `${n.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽`;
