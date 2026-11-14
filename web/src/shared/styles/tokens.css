@@ -14,6 +14,12 @@
   --warning-bg: #e4d39f;
   --warning-text: #6a4f0e;
 
+  /* Цифры остатка на чёрных чипах склада */
+  --stock-zero: #8a877d;
+  --stock-low: #ff7a6b;
+  --stock-mid: #f0cf55;
+  --stock-ok: #a6d77a;
+
   --font: "Onest", system-ui, sans-serif;
 
   --radius-card: 20px;
@@ -28,4 +34,6 @@
   --space-8: 32px;
 
   --sidebar-width: 240px;
+
+  --motion-expand: 0.28s cubic-bezier(0.2, 0, 0, 1);
 }

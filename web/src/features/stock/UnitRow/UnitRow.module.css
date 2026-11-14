@@ -1,0 +1,36 @@
+.unit {
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  width: 100%;
+  min-height: var(--control-height);
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  border-radius: var(--radius-card);
+  background: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.row:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+.secondary { color: var(--text-secondary); }
+
+.info {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-4);
+  font-size: 14px;
+}
+
+.info dt { color: var(--text-secondary); }
+.info dd { margin: 0; }

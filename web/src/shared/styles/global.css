@@ -8,6 +8,8 @@ html {
   font-variant-numeric: tabular-nums;
   color: var(--text);
   background: var(--bg);
+  /* Место под полосу прокрутки всегда занято: когда страница вырастает, ширина не меняется и раскладка не прыгает. */
+  scrollbar-gutter: stable;
 }
 
 body { margin: 0; }
