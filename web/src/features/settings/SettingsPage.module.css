@@ -1,0 +1,11 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 720px;
+}
+
+.note {
+  font-size: 14px;
+  color: var(--text-secondary);
+}

@@ -3,6 +3,7 @@ import PickingPage from "@/features/picking/PickingPage";
 import OrdersPage from "@/features/orders/OrdersPage";
 import StockPage from "@/features/stock/StockPage";
 import LabelsPage from "@/features/labels/LabelsPage";
+import SettingsPage from "@/features/settings/SettingsPage";
 
 export type AppRoute = {
   path: string;
@@ -12,10 +13,11 @@ export type AppRoute = {
 
 // Единый список разделов: из него строятся и роуты, и боковое меню.
 export const routes: AppRoute[] = [
-  { path: "/picking", label: "Комплектация", element: <PickingPage /> },
-  { path: "/orders", label: "Заказы", element: <OrdersPage /> },
-  { path: "/stock", label: "Склад", element: <StockPage /> },
   { path: "/labels", label: "Пульт", element: <LabelsPage /> },
+  { path: "/picking", label: "Комплектация", element: <PickingPage /> },
+  { path: "/stock", label: "Склад", element: <StockPage /> },
+  { path: "/orders", label: "Заказы", element: <OrdersPage /> },
+  { path: "/settings", label: "Настройки", element: <SettingsPage /> },
 ];
 
 export const defaultPath = "/stock";
