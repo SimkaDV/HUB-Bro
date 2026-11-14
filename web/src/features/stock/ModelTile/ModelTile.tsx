@@ -1,7 +1,7 @@
 import { SizeChip } from "../SizeChip/SizeChip";
 import { useStockSettings } from "../settings";
-import { sizesByAttention } from "../stock";
-import type { Model } from "../types";
+import { sizesByAttention } from "@/shared/stock";
+import type { Model } from "@/shared/stock";
 import styles from "./ModelTile.module.css";
 
 // По три чипа в ряд, рядов — из настроек отображения; если размеров больше, последний чип — «+N».

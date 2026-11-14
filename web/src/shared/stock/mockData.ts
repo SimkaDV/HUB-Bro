@@ -1,6 +1,7 @@
 import type { Batch, Model, SizeStock, Unit, UnitStatus } from "./types";
 
-// Тестовые данные, пока нет бэкенда.
+// Тестовые данные, пока нет бэкенда. Резервов здесь нет: их ставит комплектация по тестовым заказам
+// (shared/fulfillment). Остальные джинсы с заказами — со старыми короткими номерами, к заказам не привязаны.
 
 const PICKUP_POINTS = ["Avito · Профсоюзная 56", "Avito · Ленинский 30", "Avito · Мира 112", "Avito · Тверская 18"];
 const DATES = ["10.11", "11.11", "12.11", "13.11", "14.11"];
@@ -14,7 +15,7 @@ function size(name: string, stock: [string, number][], units: UnitRow[] = []): S
     units: units.map(
       ([status, order, batchId]): Unit => ({
         status,
-        order,
+        order: String(order),
         batchId,
         orderDate: DATES[order % DATES.length],
         pickupPoint: status === "reserve" ? undefined : PICKUP_POINTS[order % PICKUP_POINTS.length],
@@ -35,15 +36,14 @@ const MODELS: MockModel[] = [
       { id: "f2", name: "Клёш 12.11", date: "2026-11-12", from: "Садовод", price: 1400 },
     ],
     sizes: [
-      size("29M", [], [["sent", 1188, "f1"]]),
-      size("30S", [["f1", 4], ["f2", 9]], [["reserve", 1241, "f1"]]),
+      size("29M", [], [["sent", 1188, "f1"], ["returnStock", 1185, "f1"]]),
+      size("30S", [["f1", 4], ["f2", 9]]),
       size("30M", [["f1", 2], ["f2", 6]], [["delivered", 1219, "f1"]]),
-      size("31S", [["f1", 1], ["f2", 2]], [["reserve", 1238, "f1"], ["returnTransit", 1176, "f1"]]),
+      size("31S", [["f1", 1], ["f2", 2]], [["returnTransit", 1176, "f1"]]),
       size(
         "31M",
         [["f1", 3], ["f2", 2]],
         [
-          ["reserve", 1234, "f1"],
           ["returnStock", 1198, "f1"],
           ["sent", 1229, "f1"],
           ["delivered", 1221, "f1"],
@@ -52,7 +52,7 @@ const MODELS: MockModel[] = [
       ),
       size("32M", [["f1", 4], ["f2", 6]], [["sent", 1232, "f2"]]),
       size("32L", [["f1", 8], ["f2", 12]]),
-      size("33M", [["f1", 5], ["f2", 9]], [["reserve", 1240, "f1"]]),
+      size("33M", [["f1", 5], ["f2", 9]]),
       size("34M", [["f2", 4]]),
     ],
   },
@@ -65,9 +65,9 @@ const MODELS: MockModel[] = [
       { id: "p2", name: "Трубы 13.11", date: "2026-11-13", from: "Южные ворота", price: 1350 },
     ],
     sizes: [
-      size("30S", [["p1", 6], ["p2", 10]], [["reserve", 1243, "p1"]]),
+      size("30S", [["p1", 6], ["p2", 10]]),
       size("30M", [["p1", 3], ["p2", 4]], [["sent", 1230, "p1"]]),
-      size("31M", [["p2", 2]], [["reserve", 1239, "p1"], ["reserve", 1242, "p1"], ["delivered", 1215, "p1"]]),
+      size("31M", [["p2", 2]], [["delivered", 1215, "p1"]]),
       size("32S", [["p1", 5], ["p2", 7]]),
       size("32M", [["p1", 2], ["p2", 8]], [["returnStock", 1201, "p1"]]),
       size("33M", [], [["returnTransit", 1207, "p1"]]),
@@ -81,7 +81,7 @@ const MODELS: MockModel[] = [
     batches: [{ id: "d1", name: "Дутая 01.11", date: "2026-11-01", from: "Садовод", price: 3200 }],
     sizes: [
       size("S", [["d1", 2]]),
-      size("M", [["d1", 6]], [["reserve", 1236, "d1"]]),
+      size("M", [["d1", 6]]),
       size("L", [["d1", 11]]),
       size("XL", [["d1", 3]], [["delivered", 1224, "d1"]]),
     ],

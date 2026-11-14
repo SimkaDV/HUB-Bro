@@ -3,8 +3,8 @@ import { Collapse } from "@/shared/ui";
 import { ModelDetail } from "../ModelDetail/ModelDetail";
 import { ModelTile } from "../ModelTile/ModelTile";
 import { useStockSettings } from "../settings";
-import { modelsByAttention } from "../stock";
-import type { Model } from "../types";
+import { modelsByAttention } from "@/shared/stock";
+import type { Model } from "@/shared/stock";
 import styles from "./StockOverview.module.css";
 
 // Совпадает с длительностью затухания .leaving в ModelDetail.module.css.

@@ -5,9 +5,9 @@ import { newId } from "../delivery";
 import { DisplaySettingsPanel } from "../DisplaySettingsPanel/DisplaySettingsPanel";
 import { ModelSettingsCard } from "../ModelSettingsCard/ModelSettingsCard";
 import { nameTaken } from "../settings";
-import { DEFAULT_THRESHOLDS } from "../stock";
+import { DEFAULT_THRESHOLDS } from "@/shared/stock";
 import type { ChangeSettings } from "../store";
-import type { Category, DisplaySettings, Model } from "../types";
+import type { Category, DisplaySettings, Model } from "@/shared/stock";
 import styles from "./SettingsView.module.css";
 
 type Section = "models" | "categories" | "display";

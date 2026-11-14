@@ -17,8 +17,8 @@ import {
   todayIso,
   unitPrice,
 } from "../delivery";
-import { formatRub } from "../stock";
-import type { Category, DeliveryDraft, DeliveryInput, Model } from "../types";
+import { formatRub } from "@/shared/stock";
+import type { Category, DeliveryDraft, DeliveryInput, Model } from "@/shared/stock";
 import styles from "./DeliveryDialog.module.css";
 
 type Props = {

@@ -1,0 +1,109 @@
+.sectionTitle {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.sectionTitle a {
+  margin-left: auto;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.count {
+  color: var(--text-secondary);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.empty {
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  color: var(--text-secondary);
+}
+
+/* Панель действий прилипает к низу, пока листаешь очередь. */
+.bar {
+  position: sticky;
+  bottom: var(--space-4);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--bg);
+  box-shadow: 0 0 0 1px var(--card);
+}
+
+.barText {
+  margin-right: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.today { margin-top: var(--space-8); }
+
+.batches {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.batches li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  min-height: 52px;
+  padding: var(--space-2) var(--space-4);
+  font-variant-numeric: tabular-nums;
+}
+
+.batches li + li { border-top: 1px solid var(--bg); }
+
+.batchNo { font-weight: 600; }
+
+.batchNote {
+  flex: 1;
+  min-width: 160px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* Над панелью действий, чтобы её не закрывать. */
+.notice {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--control-height) + 2 * var(--space-6));
+  z-index: 10;
+  transform: translateX(-50%);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-button);
+  background: var(--button);
+  color: var(--on-button);
+  white-space: nowrap;
+}
+
+.notice a { color: var(--on-button); margin-left: var(--space-2); }
+
+@media (max-width: 640px) {
+  .bar { justify-content: stretch; }
+  .barText { width: 100%; }
+  .notice { white-space: normal; width: calc(100% - 2 * var(--space-4)); }
+}

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { SizeChip } from "../SizeChip/SizeChip";
 import { thresholdsProblem } from "../settings";
-import { stockLevel } from "../stock";
-import type { Thresholds } from "../types";
+import { stockLevel } from "@/shared/stock";
+import type { Thresholds } from "@/shared/stock";
 import styles from "./ThresholdEditor.module.css";
 
 type Props = {

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { StatusBadge } from "@/shared/ui";
 import { canCancel, formatDay } from "../delivery";
-import { compareSizes, formatRub } from "../stock";
-import type { Batch, Model, SettingsLogEntry } from "../types";
+import { compareSizes, formatRub } from "@/shared/stock";
+import type { Batch, Model, SettingsLogEntry } from "@/shared/stock";
 import styles from "./HistoryView.module.css";
 
 type Props = {

@@ -23,7 +23,9 @@ export type UnitStatus = "reserve" | "returnStock" | "sent" | "delivered" | "ret
 
 /** Джинса, привязанная к заказу: с этого момента она уникальная. */
 export type Unit = {
-  order: number;
+  /** Номер заказа — номер сделки Авито. */
+  order: string;
+  /** Дата заказа, ДД.ММ. */
   orderDate: string;
   status: UnitStatus;
   batchId: string;

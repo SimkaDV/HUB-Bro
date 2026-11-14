@@ -1,53 +1,17 @@
-import { useEffect, useState } from "react";
-import { applyDelivery, cancelDelivery, newId } from "./delivery";
-import { MOCK_MODELS } from "./mockData";
-import { DEFAULT_DISPLAY, ensureCategories } from "./settings";
-import type { Category, DeliveryDraft, DeliveryInput, DisplaySettings, Model, SettingsLogEntry } from "./types";
+import { newId } from "@/shared/lib/id";
+import { ensureCategories, stockStore, useStock, type StockState } from "@/shared/stock";
+import type { DeliveryDraft, DeliveryInput } from "@/shared/stock";
+import { applyDelivery, cancelDelivery } from "./delivery";
 
-// Пока нет бэкенда, склад живёт в браузере (localStorage), чтобы поставки, черновики и настройки
-// не пропадали при обновлении страницы. Потом здесь будут запросы к API.
-
-// v3: категории, отображение и журнал настроек. v2: сумма поставки и шаг в черновиках.
-const STORAGE_KEY = "hubbro.stock.v3";
-
-type StockState = {
-  models: Model[];
-  drafts: DeliveryDraft[];
-  categories: Category[];
-  display: DisplaySettings;
-  log: SettingsLogEntry[];
-};
+// Действия экрана склада. Само состояние общее (shared/stock): его же читает и меняет комплектация.
+// Пока нет бэкенда, оно живёт в браузере (localStorage). Потом здесь будут запросы к API.
 
 type SettingsPatch = Partial<Pick<StockState, "models" | "categories" | "display">>;
 
-const mockState = (): StockState => ({
-  models: MOCK_MODELS,
-  drafts: [],
-  categories: ensureCategories([], MOCK_MODELS),
-  display: DEFAULT_DISPLAY,
-  log: [],
-});
-
-function load(): StockState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { ...mockState(), ...(JSON.parse(raw) as Partial<StockState>) };
-  } catch {
-    // Повреждённые данные — начинаем с тестовых.
-  }
-  return mockState();
-}
+const setState = stockStore.set;
 
 export function useStockStore() {
-  const [state, setState] = useState<StockState>(load);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {
-      // Хранилище недоступно — работаем без сохранения.
-    }
-  }, [state]);
+  const state = useStock();
 
   return {
     ...state,
@@ -89,9 +53,7 @@ export function useStockStore() {
       setState((s) => ({ ...s, drafts: s.drafts.filter((d) => d.id !== id) }));
     },
 
-    resetToMock() {
-      setState(mockState());
-    },
+    resetToMock: stockStore.reset,
   };
 }
 

@@ -10,9 +10,9 @@ import {
   nameTaken,
   resolveThresholds,
 } from "../settings";
-import { compareSizes, onHand } from "../stock";
+import { compareSizes, onHand } from "@/shared/stock";
 import type { ChangeSettings } from "../store";
-import type { Category, Model } from "../types";
+import type { Category, Model } from "@/shared/stock";
 import styles from "./ModelSettingsCard.module.css";
 
 type Props = {

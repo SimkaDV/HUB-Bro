@@ -1,0 +1,137 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.done { background: var(--neutral-bg); }
+
+.head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+
+.number { font-size: 18px; font-weight: 600; }
+
+.meta {
+  margin-right: auto;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.note,
+.lineSecondary {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.line { font-weight: 500; }
+
+.result { font-weight: 500; }
+
+.toggle {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.orders {
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  border-radius: var(--radius-button);
+  background: var(--bg);
+}
+
+.orders li { padding: var(--space-2) var(--space-3); }
+.orders li + li { border-top: 1px solid var(--card); }
+
+.failed { background: var(--danger-bg); }
+.orders li.failed:first-child { border-radius: var(--radius-button) var(--radius-button) 0 0; }
+
+.orderRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+
+.size {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 26px;
+  padding: 0 var(--space-2);
+  border-radius: 8px;
+  background: var(--button);
+  color: var(--on-button);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.orderMain {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.comment {
+  margin-top: var(--space-1);
+  padding-left: 56px;
+  font-size: 14px;
+  color: var(--danger-text);
+}
+
+.issue {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding-left: 56px;
+}
+
+.issue select,
+.issue input {
+  height: 36px;
+  padding: 0 var(--space-2);
+  border: none;
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.issue input { flex: 1; min-width: 160px; }
+
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.hint {
+  flex-basis: 100%;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+@media (max-width: 640px) {
+  .comment,
+  .issue { padding-left: 0; }
+}

@@ -1,5 +1,5 @@
 import type { StatusTone } from "@/shared/ui";
-import type { Order, OrderProblem, OrderStatus } from "./types";
+import type { DeliveryService, Order, OrderProblem, OrderStatus } from "./types";
 
 export const STATUS_META: Record<OrderStatus, { label: string; tone: StatusTone }> = {
   ordered: { label: "Заказан", tone: "warning" },
@@ -20,6 +20,16 @@ export const PROBLEM_LABEL: Record<OrderProblem, string> = {
   noStock: "Нет на складе",
 };
 
+/** Службы доставки в порядке показа. Пока четыре, потом список будет приходить из Авито. */
+export const SERVICES: { id: DeliveryService; label: string }[] = [
+  { id: "cdek", label: "СДЭК" },
+  { id: "avito", label: "Авито" },
+  { id: "post", label: "Почта" },
+  { id: "fivepost", label: "5Post" },
+];
+
+export const SERVICE_LABEL = Object.fromEntries(SERVICES.map((s) => [s.id, s.label])) as Record<DeliveryService, string>;
+
 /** Чипы-фильтры над списком: статусы, собранные по этапам. */
 export type OrderGroup = "active" | "problems" | "toPack" | "packed" | "onTheWay" | "atPoint" | "returns" | "closed";
 
@@ -35,3 +45,8 @@ export const GROUPS: { id: OrderGroup; label: string; match: (o: Order) => boole
   { id: "returns", label: "Возвраты", match: (o) => o.status === "returnTransit" || o.status === "returnCheck" },
   { id: "closed", label: "Закрытые", match: (o) => CLOSED.includes(o.status) },
 ];
+
+/** 4812339102 → «4 812 339 102». */
+export function formatOrderId(id: string): string {
+  return id.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+}

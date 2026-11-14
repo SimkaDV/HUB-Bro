@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Collapse, StatusBadge } from "@/shared/ui";
-import { formatRub, UNIT_STATUS } from "../stock";
-import type { Batch, Unit } from "../types";
+import { formatRub, UNIT_STATUS } from "@/shared/stock";
+import type { Batch, Unit } from "@/shared/stock";
 import styles from "./UnitRow.module.css";
 
 type Props = {
