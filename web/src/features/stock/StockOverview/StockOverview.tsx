@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Collapse } from "@/shared/ui";
 import { ModelDetail } from "../ModelDetail/ModelDetail";
 import { ModelTile } from "../ModelTile/ModelTile";
-import { LOW_MAX, MID_MAX, modelsByAttention } from "../stock";
+import { useStockSettings } from "../settings";
+import { modelsByAttention } from "../stock";
 import type { Model } from "../types";
 import styles from "./StockOverview.module.css";
 
@@ -16,7 +17,8 @@ type Props = {
 
 /** Остатки: бенто-сетка моделей и раскрытая модель под ней. */
 export function StockOverview({ models: source }: Props) {
-  const models = modelsByAttention(source);
+  const { thresholdsFor } = useStockSettings();
+  const models = modelsByAttention(source, thresholdsFor);
   const [selectedId, setSelectedId] = useState<string | null>(models[0]?.id ?? null);
   // Последняя открытая модель: остаётся на экране, пока панель плавно сворачивается.
   const [shownId, setShownId] = useState(selectedId);
@@ -66,11 +68,12 @@ export function StockOverview({ models: source }: Props) {
   return (
     <>
       <div className={styles.legend}>
-        <span><b className={styles.low}>{LOW_MAX}</b> мало, ≤ {LOW_MAX}</span>
-        <span><b className={styles.mid}>{MID_MAX}</b> норм, {LOW_MAX + 1}–{MID_MAX}</span>
-        <span><b className={styles.ok}>20</b> много, больше {MID_MAX}</span>
+        <span><b className={styles.low}>3</b> мало</span>
+        <span><b className={styles.mid}>8</b> норм</span>
+        <span><b className={styles.ok}>20</b> много</span>
         <span><b className={styles.zero}>0</b> нет</span>
         <span><b>+1</b> возврат едет к нам</span>
+        <span>Пороги — у категории или модели в настройках</span>
       </div>
 
       <div className={styles.grid}>

@@ -18,11 +18,12 @@ import {
   unitPrice,
 } from "../delivery";
 import { formatRub } from "../stock";
-import type { DeliveryDraft, DeliveryInput, Model } from "../types";
+import type { Category, DeliveryDraft, DeliveryInput, Model } from "../types";
 import styles from "./DeliveryDialog.module.css";
 
 type Props = {
   models: Model[];
+  categories: Category[];
   drafts: DeliveryDraft[];
   onSubmit: (input: DeliveryInput, draftId?: string) => void;
   onSaveDraft: (input: DeliveryInput, draftId?: string) => string;
@@ -35,7 +36,7 @@ const SLIDE_MS = 240;
 
 const emptyInput = (): DeliveryInput => ({ date: todayIso(), from: "", lines: [] });
 
-export function DeliveryDialog({ models, drafts, onSubmit, onSaveDraft, onDeleteDraft, onClose }: Props) {
+export function DeliveryDialog({ models, categories, drafts, onSubmit, onSaveDraft, onDeleteDraft, onClose }: Props) {
   const [input, setInput] = useState<DeliveryInput>(emptyInput);
   const [draftId, setDraftId] = useState<string>();
   const [saved, setSaved] = useState(() => JSON.stringify(emptyInput()));
@@ -205,6 +206,7 @@ export function DeliveryDialog({ models, drafts, onSubmit, onSaveDraft, onDelete
                   key={line.key}
                   line={line}
                   models={models}
+                  categories={categories}
                   onChange={(next) => update({ lines: input.lines.map((l) => (l.key === line.key ? next : l)) })}
                   onRemove={() => update({ lines: input.lines.filter((l) => l.key !== line.key) })}
                 />

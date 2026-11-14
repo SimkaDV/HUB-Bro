@@ -1,4 +1,4 @@
-import { stockLevel } from "../stock";
+import { useStockSettings } from "../settings";
 import type { SizeSummary } from "../types";
 import styles from "./SizeChip.module.css";
 
@@ -9,14 +9,15 @@ type Props = SizeSummary & {
   onClick?: () => void;
 };
 
-export function SizeChip({ size, qty, incoming, variant = "compact", onClick }: Props) {
+export function SizeChip({ size, qty, incoming, level, variant = "compact", onClick }: Props) {
+  const { display } = useStockSettings();
   const className = `${styles.chip} ${styles[variant]} ${onClick ? styles.clickable : ""}`;
   const content = (
     <>
       <span>{size}</span>
-      <span className={`${styles.qty} ${styles[stockLevel(qty)]}`}>
+      <span className={`${styles.qty} ${styles[level]}`}>
         {qty}
-        {incoming > 0 && <small className={styles.incoming}>+{incoming}</small>}
+        {display.showIncoming && incoming > 0 && <small className={styles.incoming}>+{incoming}</small>}
       </span>
     </>
   );

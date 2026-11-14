@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Collapse, StatusBadge } from "@/shared/ui";
 import { SizeChip } from "../SizeChip/SizeChip";
 import { UnitRow } from "../UnitRow/UnitRow";
-import { formatRub, HIDDEN_STATUSES, incoming, onHand, VISIBLE_STATUSES } from "../stock";
+import { useStockSettings } from "../settings";
+import { formatRub, HIDDEN_STATUSES, summarize, VISIBLE_STATUSES } from "../stock";
 import type { Model, SizeStock, Unit, UnitStatus } from "../types";
 import styles from "./SizeRow.module.css";
 
@@ -26,6 +27,7 @@ export function SizeRow({ model, sizeStock, focusNonce }: Props) {
   const [showAll, setShowAll] = useState(false);
   const [flash, setFlash] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const { thresholdsFor } = useStockSettings();
 
   useEffect(() => {
     if (focusNonce === undefined) return;
@@ -66,7 +68,7 @@ export function SizeRow({ model, sizeStock, focusNonce }: Props) {
         aria-expanded={open}
         onClick={() => setOpen(!open)}
       >
-        <SizeChip variant="tag" size={sizeStock.size} qty={onHand(sizeStock)} incoming={incoming(sizeStock)} />
+        <SizeChip variant="tag" {...summarize(sizeStock, thresholdsFor(model))} />
         <Chevron up={open} />
         {summary.length > 0 && <span className={styles.summary}>{summary.join(" · ")}</span>}
       </button>

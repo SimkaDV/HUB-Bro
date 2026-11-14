@@ -2,27 +2,71 @@ import { useState } from "react";
 import { StatusBadge } from "@/shared/ui";
 import { canCancel, formatDay } from "../delivery";
 import { compareSizes, formatRub } from "../stock";
-import type { Model } from "../types";
+import type { Batch, Model, SettingsLogEntry } from "../types";
 import styles from "./HistoryView.module.css";
 
 type Props = {
   models: Model[];
+  log: SettingsLogEntry[];
   onCancel: (modelId: string, batchId: string) => void;
 };
 
-/** История поставок: что, откуда, по какой цене, сколько каких размеров. */
-export function HistoryView({ models, onCancel }: Props) {
+type Entry =
+  | { kind: "delivery"; at: string; model: Model; batch: Batch }
+  | { kind: "settings"; at: string; entry: SettingsLogEntry };
+
+type Filter = "all" | "delivery" | "settings";
+
+const FILTERS: { id: Filter; label: string }[] = [
+  { id: "all", label: "Всё" },
+  { id: "delivery", label: "Поставки" },
+  { id: "settings", label: "Настройки" },
+];
+
+const formatDateTime = (iso: string) =>
+  new Date(iso).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+
+/** История склада: поставки (что, откуда, по какой цене, сколько каких размеров) и изменения настроек. */
+export function HistoryView({ models, log, onCancel }: Props) {
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<Filter>("all");
 
-  const entries = models
-    .flatMap((model) => model.batches.map((batch) => ({ model, batch })))
-    .sort((a, b) => b.batch.addedAt.localeCompare(a.batch.addedAt));
-
-  if (entries.length === 0) return <p className={styles.empty}>Поставок пока нет.</p>;
+  const entries: Entry[] = [
+    ...models.flatMap((model) => model.batches.map((batch) => ({ kind: "delivery" as const, at: batch.addedAt, model, batch }))),
+    ...log.map((entry) => ({ kind: "settings" as const, at: entry.at, entry })),
+  ]
+    .filter((e) => filter === "all" || e.kind === filter)
+    .sort((a, b) => b.at.localeCompare(a.at));
 
   return (
     <div className={styles.list}>
-      {entries.map(({ model, batch }) => {
+      <div className={styles.filters} role="tablist" aria-label="Что показывать">
+        {FILTERS.map((f) => (
+          <button
+            key={f.id}
+            type="button"
+            role="tab"
+            aria-selected={filter === f.id}
+            className={filter === f.id ? styles.activeFilter : ""}
+            onClick={() => setFilter(f.id)}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {entries.length === 0 && <p className={styles.empty}>Здесь пока пусто.</p>}
+
+      {entries.map((e) => {
+        if (e.kind === "settings")
+          return (
+            <article key={e.entry.id} className={styles.settingsEntry}>
+              <span className={styles.time}>{formatDateTime(e.at)}</span>
+              <span className={styles.tag}>Настройки</span>
+              <span>{e.entry.text}</span>
+            </article>
+          );
+        const { model, batch } = e;
         const qty = batch.delivered.reduce((s, d) => s + d.qty, 0);
         const cancellable = canCancel(model, batch);
         return (

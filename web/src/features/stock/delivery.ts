@@ -32,7 +32,8 @@ export function emptyLine(model?: Model): DeliveryLine {
     newModel: { name: "", category: "" },
     total: "",
     step: 1,
-    sizes: model ? model.sizes.map((s) => s.size).sort(compareSizes) : [],
+    // Размеры модели в её порядке, без скрытых.
+    sizes: model ? model.sizes.map((s) => s.size).filter((s) => !model.hiddenSizes?.includes(s)) : [],
     qty: {},
   };
 }
@@ -57,7 +58,11 @@ export function lineProblems(line: DeliveryLine, models: Model[]): string[] {
   if (!line.modelId) {
     const name = line.newModel.name.trim();
     if (!name) problems.push("Впишите название модели");
-    else if (models.some((m) => m.name.toLowerCase() === name.toLowerCase())) problems.push("Такая модель уже есть, выберите её из списка");
+    else {
+      const same = models.find((m) => m.name.toLowerCase() === name.toLowerCase());
+      if (same?.archived) problems.push("Такая модель есть в архиве — верните её в настройках склада");
+      else if (same) problems.push("Такая модель уже есть, выберите её из списка");
+    }
     if (!line.newModel.category.trim()) problems.push("Укажите категорию");
   }
   const total = lineTotal(line);
@@ -134,7 +139,9 @@ export function applyDelivery(models: Model[], input: DeliveryInput, now = new D
       if (existing) existing.stock = [...existing.stock, { batchId: batch.id, qty: d.qty }];
       else sizes.push({ size: d.size, stock: [{ batchId: batch.id, qty: d.qty }], units: [] });
     }
-    const updated = { ...model, batches: [...model.batches, batch], sizes };
+    // Пришли джинсы скрытого размера — размер снова показываем: скрытым может быть только пустой.
+    const hiddenSizes = model.hiddenSizes?.filter((s) => !delivered.some((d) => d.size === s));
+    const updated = { ...model, batches: [...model.batches, batch], sizes, hiddenSizes };
     next = next.map((m) => (m.id === updated.id ? updated : m));
   }
   return next;
@@ -167,6 +174,10 @@ export function cancelDelivery(models: Model[], modelId: string, batchId: string
   });
 }
 
-/** Модель без живых поставок и заказов (например, все поставки отменены) в сетке не показываем. */
+/**
+ * Модель в сетке: не в архиве и не «пустышка», у которой все поставки отменены.
+ * Новая модель без поставок (заведена в настройках) видна — с нулями.
+ */
 export const isModelVisible = (m: Model) =>
-  m.batches.some((b) => !b.cancelledAt) || m.sizes.some((s) => s.units.length > 0);
+  !m.archived &&
+  (m.batches.length === 0 || m.batches.some((b) => !b.cancelledAt) || m.sizes.some((s) => s.units.length > 0));

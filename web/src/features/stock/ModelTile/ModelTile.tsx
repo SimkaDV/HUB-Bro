@@ -1,10 +1,11 @@
 import { SizeChip } from "../SizeChip/SizeChip";
+import { useStockSettings } from "../settings";
 import { sizesByAttention } from "../stock";
 import type { Model } from "../types";
 import styles from "./ModelTile.module.css";
 
-// Два ряда по три чипа; если размеров больше, последний чип — «+N».
-const MAX_CHIPS = 6;
+// По три чипа в ряд, рядов — из настроек отображения; если размеров больше, последний чип — «+N».
+const CHIPS_PER_ROW = 3;
 
 type Props = {
   model: Model;
@@ -18,8 +19,12 @@ type Props = {
 // Клик по плитке открывает модель, клик по чипу — сразу нужный размер.
 // Кнопка модели растянута на всю плитку, чипы лежат поверх неё.
 export function ModelTile({ model, selected, onSelect, onExpand, onSizeClick }: Props) {
-  const sizes = sizesByAttention(model);
-  const shown = sizes.length > MAX_CHIPS ? sizes.slice(0, MAX_CHIPS - 1) : sizes;
+  const { thresholdsFor, display } = useStockSettings();
+  const maxChips = display.tileRows * CHIPS_PER_ROW;
+  const sizes = sizesByAttention(model, thresholdsFor(model)).filter(
+    (s) => display.showZeroOnTiles || s.qty > 0 || s.incoming > 0,
+  );
+  const shown = sizes.length > maxChips ? sizes.slice(0, maxChips - 1) : sizes;
   const hidden = sizes.length - shown.length;
 
   return (

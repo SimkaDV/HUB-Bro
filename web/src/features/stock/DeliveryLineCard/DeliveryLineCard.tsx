@@ -2,12 +2,13 @@ import { useState } from "react";
 import { Input } from "@/shared/ui";
 import { categorySizes, lineQty, lineTotal, unitPrice } from "../delivery";
 import { compareSizes, formatRub } from "../stock";
-import type { DeliveryLine, Model } from "../types";
+import type { Category, DeliveryLine, Model } from "../types";
 import styles from "./DeliveryLineCard.module.css";
 
 type Props = {
   line: DeliveryLine;
   models: Model[];
+  categories: Category[];
   onChange: (line: DeliveryLine) => void;
   onRemove: () => void;
 };
@@ -16,17 +17,20 @@ type Props = {
 const STEPS = [1, 2, 5, 10];
 
 /** Одна модель в поставке: сумма, шаг и сколько каких размеров пришло. */
-export function DeliveryLineCard({ line, models, onChange, onRemove }: Props) {
+export function DeliveryLineCard({ line, models, categories, onChange, onRemove }: Props) {
   const [newSize, setNewSize] = useState("");
   const [customStep, setCustomStep] = useState(STEPS.includes(line.step) ? "" : String(line.step));
   const [confirmClear, setConfirmClear] = useState(false);
   // «Очистить» обнуляет сумму, шаг и количества; модель и список размеров остаются.
   const hasData = line.total.trim() !== "" || line.step !== 1 || lineQty(line) > 0;
   const model = models.find((m) => m.id === line.modelId);
-  const categories = [...new Set(models.map((m) => m.category))];
+  const categoryNames = categories.map((c) => c.name);
+  const newCategory = line.newModel.category.trim();
   const suggested = model
     ? []
-    : categorySizes(models, line.newModel.category.trim()).filter((s) => !line.sizes.includes(s));
+    : (categories.find((c) => c.name === newCategory)?.sizes ?? categorySizes(models, newCategory)).filter(
+        (s) => !line.sizes.includes(s),
+      );
 
   const setQty = (size: string, qty: number) =>
     onChange({ ...line, qty: { ...line.qty, [size]: Math.max(0, Math.min(999, qty)) } });
@@ -70,7 +74,7 @@ export function DeliveryLineCard({ line, models, onChange, onRemove }: Props) {
                 onChange={(e) => onChange({ ...line, newModel: { ...line.newModel, category: e.target.value } })}
               />
               <datalist id={`cats-${line.key}`}>
-                {categories.map((c) => (
+                {categoryNames.map((c) => (
                   <option key={c} value={c} />
                 ))}
               </datalist>

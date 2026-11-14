@@ -1,24 +1,41 @@
 import { useEffect, useState } from "react";
 import { applyDelivery, cancelDelivery, newId } from "./delivery";
 import { MOCK_MODELS } from "./mockData";
-import type { DeliveryDraft, DeliveryInput, Model } from "./types";
+import { DEFAULT_DISPLAY, ensureCategories } from "./settings";
+import type { Category, DeliveryDraft, DeliveryInput, DisplaySettings, Model, SettingsLogEntry } from "./types";
 
-// Пока нет бэкенда, склад живёт в браузере (localStorage), чтобы поставки и черновики
+// Пока нет бэкенда, склад живёт в браузере (localStorage), чтобы поставки, черновики и настройки
 // не пропадали при обновлении страницы. Потом здесь будут запросы к API.
 
-// v2: у поставки сумма (total), в черновиках total и step вместо price.
-const STORAGE_KEY = "hubbro.stock.v2";
+// v3: категории, отображение и журнал настроек. v2: сумма поставки и шаг в черновиках.
+const STORAGE_KEY = "hubbro.stock.v3";
 
-type StockState = { models: Model[]; drafts: DeliveryDraft[] };
+type StockState = {
+  models: Model[];
+  drafts: DeliveryDraft[];
+  categories: Category[];
+  display: DisplaySettings;
+  log: SettingsLogEntry[];
+};
+
+type SettingsPatch = Partial<Pick<StockState, "models" | "categories" | "display">>;
+
+const mockState = (): StockState => ({
+  models: MOCK_MODELS,
+  drafts: [],
+  categories: ensureCategories([], MOCK_MODELS),
+  display: DEFAULT_DISPLAY,
+  log: [],
+});
 
 function load(): StockState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as StockState;
+    if (raw) return { ...mockState(), ...(JSON.parse(raw) as Partial<StockState>) };
   } catch {
     // Повреждённые данные — начинаем с тестовых.
   }
-  return { models: MOCK_MODELS, drafts: [] };
+  return mockState();
 }
 
 export function useStockStore() {
@@ -33,18 +50,31 @@ export function useStockStore() {
   }, [state]);
 
   return {
-    models: state.models,
-    drafts: state.drafts,
+    ...state,
 
     addDelivery(input: DeliveryInput, draftId?: string) {
-      setState((s) => ({
-        models: applyDelivery(s.models, input),
-        drafts: s.drafts.filter((d) => d.id !== draftId),
-      }));
+      setState((s) => {
+        const models = applyDelivery(s.models, input);
+        return {
+          ...s,
+          models,
+          categories: ensureCategories(s.categories, models),
+          drafts: s.drafts.filter((d) => d.id !== draftId),
+        };
+      });
     },
 
     cancelDelivery(modelId: string, batchId: string) {
       setState((s) => ({ ...s, models: cancelDelivery(s.models, modelId, batchId) }));
+    },
+
+    /** Изменение настроек: применяет правку и пишет запись в историю. */
+    changeSettings(text: string, update: (s: StockState) => SettingsPatch) {
+      setState((s) => ({
+        ...s,
+        ...update(s),
+        log: [{ id: newId(), at: new Date().toISOString(), text }, ...s.log],
+      }));
     },
 
     /** Сохраняет черновик и возвращает его id (новый или тот же). */
@@ -60,7 +90,9 @@ export function useStockStore() {
     },
 
     resetToMock() {
-      setState({ models: MOCK_MODELS, drafts: [] });
+      setState(mockState());
     },
   };
 }
+
+export type ChangeSettings = ReturnType<typeof useStockStore>["changeSettings"];
