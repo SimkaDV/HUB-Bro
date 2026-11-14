@@ -75,10 +75,10 @@ export function SizeRow({ model, sizeStock, focusNonce }: Props) {
           {onShelf.length === 0 && <p className={styles.empty}>На складе нет</p>}
           {onShelf.map((s) => (
             <div key={s.batchId} className={styles.line}>
+              <span className={styles.qty}>{s.qty} шт.</span>
               <StatusBadge tone="success">На складе</StatusBadge>
               <span>«{batch(s.batchId).name}»</span>
               <span className={styles.secondary}>{formatRub(batch(s.batchId).price)}</span>
-              <span className={styles.qty}>×{s.qty}</span>
             </div>
           ))}
           {visible.map(unitRow)}

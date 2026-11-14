@@ -1,12 +1,18 @@
 // Модель данных склада. Описание — docs/WAREHOUSE.md
 
-/** Закупка одной модели в один день, одна цена на всю партию. */
+/** Поставка (= партия): одна модель за один день, одна цена на всю поставку. */
 export type Batch = {
   id: string;
   name: string;
+  /** Дата прихода, YYYY-MM-DD. */
   date: string;
   from: string;
   price: number;
+  /** Сколько каких размеров пришло — для истории и проверки отмены. */
+  delivered: { size: string; qty: number }[];
+  /** Когда внесли в систему, ISO. */
+  addedAt: string;
+  cancelledAt?: string;
 };
 
 /** Статусы джинсы, у которой уже есть заказ. «На складе» хранится количеством, см. SizeStock.stock. */
@@ -36,7 +42,30 @@ export type Model = {
   sizes: SizeStock[];
 };
 
-export type StockLevel = "zero" | "low" | "mid" | "ok";
+/** Одна модель в окне «+ Поставка». Из каждой строки получается отдельная поставка. */
+export type DeliveryLine = {
+  key: string;
+  /** null — новая модель, создаётся прямо из поставки. */
+  modelId: string | null;
+  newModel: { name: string; category: string };
+  /** Строкой, как в поле ввода: пусто — ещё не вписали. */
+  price: string;
+  sizes: string[];
+  qty: Record<string, number>;
+};
+
+export type DeliveryInput = {
+  date: string;
+  from: string;
+  lines: DeliveryLine[];
+};
+
+export type DeliveryDraft = DeliveryInput & {
+  id: string;
+  updatedAt: string;
+};
+
+export type StockLevel ="zero" | "low" | "mid" | "ok";
 
 export type SizeSummary = {
   size: string;

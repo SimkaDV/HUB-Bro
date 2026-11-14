@@ -65,9 +65,11 @@
 
 .secondary { color: var(--text-secondary); }
 
+/* Количество — главное в строке, поэтому первым; ширина одна, чтобы плашки «На складе» стояли ровно. */
 .qty {
-  margin-left: auto;
-  font-weight: 600;
+  min-width: 52px;
+  font-size: 17px;
+  font-weight: 700;
 }
 
 .empty { color: var(--text-secondary); }

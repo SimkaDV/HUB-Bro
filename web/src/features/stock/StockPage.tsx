@@ -1,87 +1,66 @@
-import { useEffect, useRef, useState } from "react";
-import { Collapse, PageHeader } from "@/shared/ui";
-import { ModelDetail } from "./ModelDetail/ModelDetail";
-import { ModelTile } from "./ModelTile/ModelTile";
-import { MOCK_MODELS } from "./mockData";
-import { LOW_MAX, MID_MAX, modelsByAttention } from "./stock";
+import { useState } from "react";
+import { Button, PageHeader } from "@/shared/ui";
+import { DeliveryDialog } from "./DeliveryDialog/DeliveryDialog";
+import { isModelVisible, lineQty } from "./delivery";
+import { HistoryView } from "./HistoryView/HistoryView";
+import { StockOverview } from "./StockOverview/StockOverview";
+import { useStockStore } from "./store";
+import { Toast } from "./Toast/Toast";
 import styles from "./StockPage.module.css";
 
-// Совпадает с длительностью затухания .leaving в ModelDetail.module.css.
-const SWITCH_FADE_MS = 180;
-const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
 export default function StockPage() {
-  const models = modelsByAttention(MOCK_MODELS);
-  const [selectedId, setSelectedId] = useState<string | null>(models[0]?.id ?? null);
-  // Последняя открытая модель: остаётся на экране, пока панель плавно сворачивается.
-  const [shownId, setShownId] = useState(selectedId);
-  const [leaving, setLeaving] = useState(false);
-  const switchTimer = useRef<number>();
-  const shown = models.find((m) => m.id === shownId);
-
-  const select = (id: string | null) => {
-    window.clearTimeout(switchTimer.current);
-    setSelectedId(id);
-    setFocus(null);
-    if (!id) return;
-    if (selectedId === null || reducedMotion()) {
-      setLeaving(false);
-      setShownId(id);
-      return;
-    }
-    // Смена модели: старая панель затухает, потом проявляется новая.
-    setLeaving(true);
-    switchTimer.current = window.setTimeout(() => {
-      setShownId(id);
-      setLeaving(false);
-    }, SWITCH_FADE_MS);
-  };
-
-  useEffect(() => () => window.clearTimeout(switchTimer.current), []);
-
-  // Клик по чипу размера: открыть модель (если не открыта) и сразу этот размер.
-  const [focus, setFocus] = useState<{ modelId: string; size: string; nonce: number } | null>(null);
-  const openSize = (modelId: string, size: string) => {
-    if (modelId !== selectedId) select(modelId);
-    setFocus({ modelId, size, nonce: Date.now() });
-  };
+  const store = useStockStore();
+  const [view, setView] = useState<"stock" | "history">("stock");
+  const [deliveryOpen, setDeliveryOpen] = useState(false);
+  const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
+  const notify = (text: string) => setToast({ id: Date.now(), text });
 
   return (
     <>
-      <PageHeader title="Склад" subtitle="Тестовые данные, к базе подключим позже" />
+      <PageHeader
+        title={view === "stock" ? "Склад" : "История склада"}
+        subtitle="Тестовые данные хранятся в этом браузере, к базе подключим позже"
+        actions={
+          <>
+            <Button onClick={() => setDeliveryOpen(true)}>+ Поставка</Button>
+            <Button variant="secondary" onClick={() => setView(view === "stock" ? "history" : "stock")}>
+              {view === "stock" ? "История" : "Остатки"}
+            </Button>
+          </>
+        }
+      />
 
-      <div className={styles.legend}>
-        <span><b className={styles.low}>{LOW_MAX}</b> мало, ≤ {LOW_MAX}</span>
-        <span><b className={styles.mid}>{MID_MAX}</b> норм, {LOW_MAX + 1}–{MID_MAX}</span>
-        <span><b className={styles.ok}>20</b> много, больше {MID_MAX}</span>
-        <span><b className={styles.zero}>0</b> нет</span>
-        <span><b>+1</b> возврат едет к нам</span>
-      </div>
-
-      <div className={styles.grid}>
-        {models.map((m) => (
-          <ModelTile
-            key={m.id}
-            model={m}
-            selected={m.id === selectedId}
-            onSelect={() => select(m.id === selectedId ? null : m.id)}
-            onSizeClick={(size) => openSize(m.id, size)}
-          />
-        ))}
-      </div>
-
-      <Collapse open={selectedId !== null}>
-        {shown && (
-          <ModelDetail
-            key={shown.id}
-            model={shown}
-            leaving={leaving}
-            focus={focus?.modelId === shown.id ? focus : undefined}
-            onSizeClick={(size) => openSize(shown.id, size)}
-            onClose={() => select(null)}
+      <div className={styles.view} key={view}>
+        {view === "stock" ? (
+          <StockOverview models={store.models.filter(isModelVisible)} />
+        ) : (
+          <HistoryView
+            models={store.models}
+            onCancel={(modelId, batchId) => {
+              store.cancelDelivery(modelId, batchId);
+              notify("Поставка отменена, остатки убраны со склада");
+            }}
           />
         )}
-      </Collapse>
+      </div>
+
+      {deliveryOpen && (
+        <DeliveryDialog
+          models={store.models}
+          drafts={store.drafts}
+          onSubmit={(input, draftId) => {
+            store.addDelivery(input, draftId);
+            const qty = input.lines.reduce((s, l) => s + lineQty(l), 0);
+            const n = input.lines.length;
+            notify(n > 1 ? `Добавлено ${n} поставки: ${qty} шт.` : `Поставка добавлена: ${qty} шт.`);
+          }}
+          onSaveDraft={store.saveDraft}
+          onDeleteDraft={store.deleteDraft}
+          onClose={() => setDeliveryOpen(false)}
+        />
+      )}
+
+      <Toast message={toast} />
     </>
   );
 }

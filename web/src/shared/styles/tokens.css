@@ -6,6 +6,7 @@
   --text-secondary: #5a574e;
   --button: #000;
   --on-button: #fff;
+  --overlay: rgba(0, 0, 0, 0.28);
 
   --danger-bg: #e3c4b9;
   --danger-text: #7a2e22;

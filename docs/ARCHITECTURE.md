@@ -17,7 +17,7 @@ web/src/
 │   ├── stock/            Склад
 │   └── labels/           Расклейка
 └── shared/               то, что используется в нескольких разделах
-    ├── ui/               базовые компоненты: Button, Card, Collapse, PageHeader, StatusBadge
+    ├── ui/               базовые компоненты: Button, Card, Collapse, Input, PageHeader, StatusBadge
     └── styles/           tokens.css (цвета, отступы, скругления), global.css
 ```
 

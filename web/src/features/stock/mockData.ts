@@ -1,4 +1,4 @@
-import type { Model, SizeStock, Unit, UnitStatus } from "./types";
+import type { Batch, Model, SizeStock, Unit, UnitStatus } from "./types";
 
 // Тестовые данные, пока нет бэкенда.
 
@@ -23,14 +23,16 @@ function size(name: string, stock: [string, number][], units: UnitRow[] = []): S
   };
 }
 
-export const MOCK_MODELS: Model[] = [
+type MockModel = Omit<Model, "batches"> & { batches: Omit<Batch, "delivered" | "addedAt">[] };
+
+const MODELS: MockModel[] = [
   {
     id: "flare",
     name: "Джинсы Клёш",
     category: "Джинсы",
     batches: [
-      { id: "f1", name: "Клёш 02.11", date: "02.11", from: "Садовод", price: 1450 },
-      { id: "f2", name: "Клёш 12.11", date: "12.11", from: "Садовод", price: 1400 },
+      { id: "f1", name: "Клёш 02.11", date: "2026-11-02", from: "Садовод", price: 1450 },
+      { id: "f2", name: "Клёш 12.11", date: "2026-11-12", from: "Садовод", price: 1400 },
     ],
     sizes: [
       size("29M", [], [["sent", 1188, "f1"]]),
@@ -59,8 +61,8 @@ export const MOCK_MODELS: Model[] = [
     name: "Джинсы Трубы",
     category: "Джинсы",
     batches: [
-      { id: "p1", name: "Трубы 05.11", date: "05.11", from: "Южные ворота", price: 1300 },
-      { id: "p2", name: "Трубы 13.11", date: "13.11", from: "Южные ворота", price: 1350 },
+      { id: "p1", name: "Трубы 05.11", date: "2026-11-05", from: "Южные ворота", price: 1300 },
+      { id: "p2", name: "Трубы 13.11", date: "2026-11-13", from: "Южные ворота", price: 1350 },
     ],
     sizes: [
       size("30S", [["p1", 6], ["p2", 10]], [["reserve", 1243, "p1"]]),
@@ -76,7 +78,7 @@ export const MOCK_MODELS: Model[] = [
     id: "puffer",
     name: "Куртка Дутая",
     category: "Куртки",
-    batches: [{ id: "d1", name: "Дутая 01.11", date: "01.11", from: "Садовод", price: 3200 }],
+    batches: [{ id: "d1", name: "Дутая 01.11", date: "2026-11-01", from: "Садовод", price: 3200 }],
     sizes: [
       size("S", [["d1", 2]]),
       size("M", [["d1", 6]], [["reserve", 1236, "d1"]]),
@@ -85,3 +87,19 @@ export const MOCK_MODELS: Model[] = [
     ],
   },
 ];
+
+// «Пришло» в каждой поставке = что лежит на полке + что уже ушло по заказам.
+export const MOCK_MODELS: Model[] = MODELS.map((m) => ({
+  ...m,
+  batches: m.batches.map((b) => ({
+    ...b,
+    addedAt: `${b.date}T12:00:00`,
+    delivered: m.sizes
+      .map((s) => ({
+        size: s.size,
+        qty:
+          (s.stock.find((x) => x.batchId === b.id)?.qty ?? 0) + s.units.filter((u) => u.batchId === b.id).length,
+      }))
+      .filter((d) => d.qty > 0),
+  })),
+}));
