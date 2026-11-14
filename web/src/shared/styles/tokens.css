@@ -1,0 +1,31 @@
+/* Дизайн-токены HUB BRO. Описание — docs/DESIGN.md */
+:root {
+  --bg: #cfcdc0;
+  --card: #b3aea2;
+  --text: #000;
+  --text-secondary: #5a574e;
+  --button: #000;
+  --on-button: #fff;
+
+  --danger-bg: #e3c4b9;
+  --danger-text: #7a2e22;
+  --success-bg: #cad2b1;
+  --success-text: #3e4f22;
+  --warning-bg: #e4d39f;
+  --warning-text: #6a4f0e;
+
+  --font: "Onest", system-ui, sans-serif;
+
+  --radius-card: 20px;
+  --radius-button: 12px;
+  --control-height: 44px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --sidebar-width: 240px;
+}

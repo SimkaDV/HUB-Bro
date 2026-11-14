@@ -1,0 +1,24 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--control-height);
+  padding: 0 var(--space-4);
+  border: none;
+  border-radius: var(--radius-button);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.button:active { transform: scale(0.98); }
+.button:disabled { opacity: 0.4; cursor: default; }
+
+.primary {
+  background: var(--button);
+  color: var(--on-button);
+}
+
+.secondary {
+  background: var(--card);
+  color: var(--text);
+}
