@@ -1,28 +1,5 @@
-.card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-6);
-}
-
-.head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-4);
-}
-
-.title {
-  font-size: 20px;
-  font-weight: 600;
-}
-
-.description {
-  margin-top: var(--space-1);
-  color: var(--text-secondary);
-}
-
-.fields {
+/* Общие стили форм настроек: поля лежат на карточке раздела. */
+.form {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -32,6 +9,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
 .label {
@@ -44,14 +22,10 @@
   color: var(--text-secondary);
 }
 
-.inputRow {
-  display: flex;
-  gap: var(--space-2);
-}
-
 /* На карточке поле светлее фона карточки, иначе сливается. */
 .input {
   flex: 1;
+  width: 100%;
   min-width: 0;
   height: var(--control-height);
   padding: 0 var(--space-3);
@@ -65,11 +39,7 @@
 
 .input::placeholder { color: var(--text-secondary); }
 .input:focus { outline: none; border-color: var(--text); }
-
-.reveal {
-  flex-shrink: 0;
-  background: var(--bg);
-}
+.input:disabled { opacity: 0.5; }
 
 .hint {
   font-size: 13px;
@@ -92,10 +62,8 @@
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
 }
 
-@media (max-width: 720px) {
-  .card { padding: var(--space-4); }
-  .head { flex-direction: column; }
-}
+.onCard { background: var(--bg); }
