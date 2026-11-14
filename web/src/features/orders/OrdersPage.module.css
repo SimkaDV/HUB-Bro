@@ -1,0 +1,56 @@
+.search { width: 280px; }
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.range {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+}
+
+.range input { width: 160px; height: 36px; }
+
+.note {
+  margin: calc(-1 * var(--space-3)) 0 var(--space-3);
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.days {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.dayTitle {
+  margin-bottom: var(--space-2);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.dayCount {
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.list { padding: 0; overflow: hidden; }
+.list ul { margin: 0; padding: 0; list-style: none; }
+
+.empty { color: var(--text-secondary); }
+
+@media (max-width: 640px) {
+  .search { width: 100%; }
+}
