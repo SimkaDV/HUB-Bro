@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Collapse, StatusBadge } from "@/shared/ui";
 import { SizeChip } from "../SizeChip/SizeChip";
 import { UnitRow } from "../UnitRow/UnitRow";
@@ -9,7 +9,11 @@ import styles from "./SizeRow.module.css";
 type Props = {
   model: Model;
   sizeStock: SizeStock;
+  /** Меняется — размер раскрывается, прокручивается в видимую область и подсвечивается. */
+  focusNonce?: number;
 };
+
+const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function byStatus(units: Unit[], order: UnitStatus[]) {
   return units
@@ -17,9 +21,27 @@ function byStatus(units: Unit[], order: UnitStatus[]) {
     .sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
 }
 
-export function SizeRow({ model, sizeStock }: Props) {
+export function SizeRow({ model, sizeStock, focusNonce }: Props) {
   const [open, setOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [flash, setFlash] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (focusNonce === undefined) return;
+    setOpen(true);
+    setFlash(false);
+    // Кадр на то, чтобы панель модели успела появиться.
+    const scroll = window.setTimeout(() => {
+      ref.current?.scrollIntoView({ behavior: reducedMotion() ? "auto" : "smooth", block: "start" });
+      setFlash(true);
+    }, 50);
+    const unflash = window.setTimeout(() => setFlash(false), 1500);
+    return () => {
+      window.clearTimeout(scroll);
+      window.clearTimeout(unflash);
+    };
+  }, [focusNonce]);
 
   const batch = (id: string) => model.batches.find((b) => b.id === id)!;
   const visible = byStatus(sizeStock.units, VISIBLE_STATUSES);
@@ -37,8 +59,13 @@ export function SizeRow({ model, sizeStock }: Props) {
   );
 
   return (
-    <div className={styles.size}>
-      <button type="button" className={styles.head} aria-expanded={open} onClick={() => setOpen(!open)}>
+    <div className={styles.size} ref={ref}>
+      <button
+        type="button"
+        className={`${styles.head} ${flash ? styles.flash : ""}`}
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
         <SizeChip variant="tag" size={sizeStock.size} qty={onHand(sizeStock)} incoming={incoming(sizeStock)} />
         <Chevron up={open} />
         {summary.length > 0 && <span className={styles.summary}>{summary.join(" · ")}</span>}

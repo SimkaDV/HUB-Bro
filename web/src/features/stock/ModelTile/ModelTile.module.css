@@ -1,4 +1,5 @@
 .tile {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -9,20 +10,33 @@
   background: var(--card);
   color: var(--text);
   text-align: center;
-  cursor: pointer;
   transition: border-color var(--motion-expand);
 }
 
-.tile:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
-
 .selected { border-color: var(--text); }
 
-.name {
+.open {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
   font-size: 16px;
   font-weight: 500;
   line-height: 1.2;
   text-wrap: balance;
+  cursor: pointer;
 }
+
+/* Растягиваем кнопку на всю плитку. */
+.open::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: var(--radius-card);
+}
+
+.open:focus-visible { outline: none; }
+.open:focus-visible::after { outline: 2px solid var(--text); outline-offset: 2px; }
 
 .category {
   margin-top: calc(-1 * var(--space-1));
@@ -31,6 +45,8 @@
 }
 
 .chips {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: repeat(3, auto);
   justify-content: center;
@@ -38,6 +54,7 @@
   margin-top: var(--space-1);
 }
 
+/* «+N» пропускает клик к плитке: откроется вся модель. */
 .more {
   display: inline-flex;
   align-items: center;
@@ -48,4 +65,5 @@
   color: var(--on-button);
   font-size: 12px;
   font-weight: 600;
+  pointer-events: none;
 }

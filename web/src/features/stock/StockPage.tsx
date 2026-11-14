@@ -22,6 +22,7 @@ export default function StockPage() {
   const select = (id: string | null) => {
     window.clearTimeout(switchTimer.current);
     setSelectedId(id);
+    setFocus(null);
     if (!id) return;
     if (selectedId === null || reducedMotion()) {
       setLeaving(false);
@@ -37,6 +38,13 @@ export default function StockPage() {
   };
 
   useEffect(() => () => window.clearTimeout(switchTimer.current), []);
+
+  // Клик по чипу размера: открыть модель (если не открыта) и сразу этот размер.
+  const [focus, setFocus] = useState<{ modelId: string; size: string; nonce: number } | null>(null);
+  const openSize = (modelId: string, size: string) => {
+    if (modelId !== selectedId) select(modelId);
+    setFocus({ modelId, size, nonce: Date.now() });
+  };
 
   return (
     <>
@@ -57,12 +65,22 @@ export default function StockPage() {
             model={m}
             selected={m.id === selectedId}
             onSelect={() => select(m.id === selectedId ? null : m.id)}
+            onSizeClick={(size) => openSize(m.id, size)}
           />
         ))}
       </div>
 
       <Collapse open={selectedId !== null}>
-        {shown && <ModelDetail key={shown.id} model={shown} leaving={leaving} onClose={() => select(null)} />}
+        {shown && (
+          <ModelDetail
+            key={shown.id}
+            model={shown}
+            leaving={leaving}
+            focus={focus?.modelId === shown.id ? focus : undefined}
+            onSizeClick={(size) => openSize(shown.id, size)}
+            onClose={() => select(null)}
+          />
+        )}
       </Collapse>
     </>
   );

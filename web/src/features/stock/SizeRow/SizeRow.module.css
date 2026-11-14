@@ -1,6 +1,15 @@
 .size {
   display: flex;
   flex-direction: column;
+  scroll-margin-top: var(--space-6);
+}
+
+/* Подсветка размера, к которому перешли по чипу. */
+.flash { animation: flash 1.4s ease-out; }
+
+@keyframes flash {
+  0%, 35% { box-shadow: 0 0 0 4px var(--card); }
+  100% { box-shadow: 0 0 0 4px transparent; }
 }
 
 .head {
@@ -11,6 +20,7 @@
   align-self: flex-start;
   padding: 0;
   border: none;
+  border-radius: var(--radius-button);
   background: none;
   color: var(--text);
   cursor: pointer;
@@ -77,4 +87,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   .chevron { transition: none; }
+  .flash { animation: none; }
 }

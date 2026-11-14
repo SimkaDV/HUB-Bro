@@ -6,6 +6,21 @@
   font-variant-numeric: tabular-nums;
 }
 
+.clickable {
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.clickable:hover { transform: scale(1.08); }
+.clickable:active { transform: scale(0.96); }
+.clickable:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .clickable { transition: none; }
+}
+
 .compact {
   flex-direction: column;
   min-width: 36px;
