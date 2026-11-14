@@ -1,0 +1,57 @@
+.section {
+  background: var(--card);
+  border-radius: var(--radius-card);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  padding: var(--space-4) var(--space-6);
+  border: none;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.description {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.chevron {
+  font-size: 18px;
+  transition: transform var(--motion-expand);
+}
+
+.up { transform: rotate(180deg); }
+
+.body {
+  padding: var(--space-2) var(--space-6) var(--space-6);
+}
+
+@media (max-width: 720px) {
+  .head { flex-wrap: wrap; padding: var(--space-4); }
+  .text { flex-basis: 100%; }
+  .body { padding: var(--space-2) var(--space-4) var(--space-4); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron { transition: none; }
+}
