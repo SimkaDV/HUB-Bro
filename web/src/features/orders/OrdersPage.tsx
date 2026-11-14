@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { GROUPS, useOrders, type OrderGroup } from "@/shared/orders";
-import { Card, Input, PageHeader } from "@/shared/ui";
-import { FilterChip } from "./FilterChip/FilterChip";
+import { Card, FilterChip, Input, PageHeader } from "@/shared/ui";
 import { groupByDay, inPeriod, matchesQuery, PERIODS, type DateRange, type Period } from "./filter";
 import { OrderRow } from "./OrderRow/OrderRow";
 import styles from "./OrdersPage.module.css";

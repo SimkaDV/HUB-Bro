@@ -1,8 +1,8 @@
 import { SizeChip } from "../SizeChip/SizeChip";
 import { SizeRow } from "../SizeRow/SizeRow";
 import { useStockSettings } from "../settings";
-import { sizesByAttention, visibleSizes } from "../stock";
-import type { Model } from "../types";
+import { sizesByAttention, visibleSizes } from "@/shared/stock";
+import type { Model } from "@/shared/stock";
 import styles from "./ModelDetail.module.css";
 
 type Props = {

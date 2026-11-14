@@ -1,0 +1,39 @@
+.sectionTitle {
+  margin-bottom: var(--space-3);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.empty {
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  color: var(--text-secondary);
+}
+
+.empty a { color: var(--text); }
+
+.history { margin-top: var(--space-8); }
+
+.historyToggle {
+  margin-bottom: var(--space-3);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.count {
+  color: var(--text-secondary);
+  font-weight: 400;
+}

@@ -1,9 +1,12 @@
-import type { Order, OrderProblem, OrderStatus, StatusChange } from "./types";
+import { SERVICE_LABEL } from "./statuses";
+import type { DeliveryService, Order, OrderStatus, StatusChange } from "./types";
 
 // Тестовые заказы, пока API заказов Авито отвечает 403. Даты считаются от сегодняшнего дня,
 // чтобы фильтры «Сегодня» и «7 дней» всегда было на чём проверить.
+// Пометки проблем и резервы здесь не задаются: их ставит сверка со складом (shared/fulfillment).
 
-const POINTS = ["Avito · Профсоюзная 56", "Avito · Ленинский 30", "Avito · Мира 112", "Avito · Тверская 18"];
+const SERVICES: DeliveryService[] = ["cdek", "avito", "post", "fivepost", "cdek", "avito", "avito"];
+const STREETS = ["Профсоюзная 56", "Ленинский 30", "Мира 112", "Тверская 18", "Арбат 9"];
 const BUYERS = ["Анна", "Илья", "Марина", "Денис", "Ольга", "Кирилл"];
 
 const FLARE = "Джинсы Клёш";
@@ -21,34 +24,47 @@ function at(daysAgo: number, time: string): string {
   return d.toISOString();
 }
 
-function order(id: string, product: string, size: string | null, price: number, steps: Step[], problem?: OrderProblem): Order {
+function order(id: string, product: string, size: string | null, price: number, steps: Step[]): Order {
   const history: StatusChange[] = steps.map(([status, daysAgo, time]) => ({ status, at: at(daysAgo, time) }));
   const n = Number(id.slice(-3));
+  const service = SERVICES[n % SERVICES.length];
   return {
     id,
     createdAt: history[0].at,
     product,
     size: size ?? undefined,
-    pickupPoint: POINTS[n % POINTS.length],
+    service,
+    pickupPoint: `${SERVICE_LABEL[service]} · ${STREETS[n % STREETS.length]}`,
     price,
     buyer: BUYERS[n % BUYERS.length],
     status: history[history.length - 1].status,
-    problem,
     history,
   };
 }
 
 export const MOCK_ORDERS: Order[] = [
   // Сегодня
-  order("4812339102", FLARE, null, 3490, [["ordered", 0, "11:20"]], "noSize"),
+  order("4812339102", FLARE, null, 3490, [["ordered", 0, "11:20"]]),
   order("4812338871", PIPES, "31M", 3290, [["ordered", 0, "10:05"]]),
-  order("4812338540", FLARE, "34L", 3490, [["ordered", 0, "09:12"]], "noStock"),
+  order("4812338540", FLARE, "34L", 3490, [["ordered", 0, "09:12"]]),
   order("4812337016", PUFFER, "M", 6900, [["ordered", 0, "08:47"]]),
+  order("4812336923", FLARE, "31M", 3490, [["ordered", 0, "08:30"]]),
+  order("4812336580", FLARE, "30S", 3490, [["ordered", 0, "08:12"]]),
+  order("4812336247", PIPES, "30S", 3290, [["ordered", 0, "07:58"]]),
+  order("4812335914", FLARE, "29M", 3490, [["ordered", 0, "07:41"]]),
+  order("4812335631", PIPES, "32S", 3290, [["ordered", 0, "07:15"]]),
+  order("4812335308", PUFFER, "L", 6900, [["ordered", 0, "06:52"]]),
+  order("4812334975", FLARE, "32L", 3490, [["ordered", 0, "02:20"]]),
   // Вчера
   order("4812330877", FLARE, "30S", 3490, [["ordered", 1, "19:31"], ["packed", 0, "10:40"]]),
   order("4812330412", PIPES, "30S", 3290, [["ordered", 1, "17:02"], ["packed", 0, "10:42"]]),
   order("4812329905", FLARE, "33M", 3490, [["ordered", 1, "14:15"]]),
-  order("4812329588", PIPES, null, 3290, [["ordered", 1, "12:50"]], "noSize"),
+  order("4812329762", FLARE, "31M", 3490, [["ordered", 1, "13:30"]]),
+  order("4812329644", PIPES, "33M", 3290, [["ordered", 1, "13:02"]]),
+  order("4812329436", PIPES, "30S", 3290, [["ordered", 1, "12:10"]]),
+  order("4812329217", FLARE, "30S", 3490, [["ordered", 1, "11:44"]]),
+  order("4812329051", PIPES, "34L", 3290, [["ordered", 1, "10:05"]]),
+  order("4812329588", PIPES, null, 3290, [["ordered", 1, "12:50"]]),
   order("4812328733", FLARE, "31S", 3490, [["ordered", 1, "09:18"], ["cancelled", 1, "15:44"]]),
   // 2–3 дня назад
   order("4812321460", PIPES, "34L", 3290, [["ordered", 2, "18:22"], ["packed", 1, "11:05"], ["sent", 1, "16:30"]]),

@@ -1,5 +1,5 @@
 import { useStockSettings } from "../settings";
-import type { SizeSummary } from "../types";
+import type { SizeSummary } from "@/shared/stock";
 import styles from "./SizeChip.module.css";
 
 type Props = SizeSummary & {

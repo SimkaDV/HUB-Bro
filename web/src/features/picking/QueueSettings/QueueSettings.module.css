@@ -1,0 +1,79 @@
+.panel {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  gap: var(--space-6);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.caption {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.levels {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: level;
+}
+
+.level {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  height: 40px;
+  padding: 0 var(--space-2) 0 var(--space-3);
+  border-radius: var(--radius-button);
+  background: var(--bg);
+}
+
+.level + .level { margin-top: var(--space-1); }
+
+.off { opacity: 0.55; }
+
+.levelName {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.levelName input { width: 18px; height: 18px; accent-color: var(--button); }
+
+.arrows { display: flex; gap: var(--space-1); }
+
+.arrows button {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.arrows button:disabled { opacity: 0.3; cursor: default; }
+.arrows button:focus-visible { outline: 2px solid var(--text); }
+
+@media (max-width: 860px) {
+  .panel { grid-template-columns: 1fr; gap: var(--space-4); }
+}

@@ -15,7 +15,7 @@ export const routes: AppRoute[] = [
   { path: "/picking", label: "Комплектация", element: <PickingPage /> },
   { path: "/orders", label: "Заказы", element: <OrdersPage /> },
   { path: "/stock", label: "Склад", element: <StockPage /> },
-  { path: "/labels", label: "Расклейка", element: <LabelsPage /> },
+  { path: "/labels", label: "Пульт", element: <LabelsPage /> },
 ];
 
 export const defaultPath = "/stock";

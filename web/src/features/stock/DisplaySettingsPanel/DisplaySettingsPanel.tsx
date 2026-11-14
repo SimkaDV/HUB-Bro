@@ -1,5 +1,5 @@
 import type { ChangeSettings } from "../store";
-import type { DisplaySettings } from "../types";
+import type { DisplaySettings } from "@/shared/stock";
 import styles from "./DisplaySettingsPanel.module.css";
 
 type Props = {

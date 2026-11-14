@@ -16,6 +16,9 @@ export type OrderStatus =
 /** Пометка на заказе в «Заказан». Не статус. */
 export type OrderProblem = "noSize" | "noStock";
 
+/** Служба доставки. Пока четыре, потом список будет приходить из Авито. */
+export type DeliveryService = "cdek" | "avito" | "post" | "fivepost";
+
 export type StatusChange = {
   status: OrderStatus;
   /** Когда сменился, ISO. */
@@ -32,6 +35,9 @@ export type Order = {
   product: string;
   /** Размер из чата. Нет — бот ещё не прислал. */
   size?: string;
+  /** Служба доставки, куда сдаём посылку. */
+  service: DeliveryService;
+  /** ПВЗ покупателя: служба и адрес. */
   pickupPoint: string;
   /** Храним, на экране пока не показываем. */
   price: number;

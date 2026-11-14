@@ -1,9 +1,10 @@
-import { compareSizes } from "./stock";
-import type { Batch, DeliveryInput, DeliveryLine, Model, SizeStock } from "./types";
+import { newId } from "@/shared/lib/id";
+import { compareSizes } from "@/shared/stock";
+import type { Batch, DeliveryInput, DeliveryLine, Model, SizeStock } from "@/shared/stock";
 
 // Логика поставок. Описание — docs/WAREHOUSE.md, раздел «Поставки».
 
-export const newId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+export { newId };
 
 export function todayIso() {
   const d = new Date();

@@ -3,9 +3,9 @@ import { Collapse, Input } from "@/shared/ui";
 import { SizeListEditor } from "../SizeListEditor/SizeListEditor";
 import { ThresholdEditor } from "../ThresholdEditor/ThresholdEditor";
 import { canDeleteCategory, formatThresholds, nameTaken } from "../settings";
-import { compareSizes } from "../stock";
+import { compareSizes } from "@/shared/stock";
 import type { ChangeSettings } from "../store";
-import type { Category, Model } from "../types";
+import type { Category, Model } from "@/shared/stock";
 import styles from "./CategorySettingsCard.module.css";
 
 type Props = {

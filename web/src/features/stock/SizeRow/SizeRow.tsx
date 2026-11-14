@@ -3,8 +3,8 @@ import { Collapse, StatusBadge } from "@/shared/ui";
 import { SizeChip } from "../SizeChip/SizeChip";
 import { UnitRow } from "../UnitRow/UnitRow";
 import { useStockSettings } from "../settings";
-import { formatRub, HIDDEN_STATUSES, summarize, VISIBLE_STATUSES } from "../stock";
-import type { Model, SizeStock, Unit, UnitStatus } from "../types";
+import { formatRub, HIDDEN_STATUSES, summarize, VISIBLE_STATUSES } from "@/shared/stock";
+import type { Model, SizeStock, Unit, UnitStatus } from "@/shared/stock";
 import styles from "./SizeRow.module.css";
 
 type Props = {

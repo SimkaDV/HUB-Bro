@@ -1,0 +1,55 @@
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-4);
+  border: none;
+  border-radius: var(--radius-card);
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+
+.clickable { cursor: pointer; transition: transform 0.15s; }
+.clickable:hover { transform: translateY(-1px); }
+.clickable:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+.alert {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.label {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.alert .label { color: inherit; }
+
+.value {
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.detail {
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+
+.alert .detail { color: inherit; }
+
+@media (prefers-reduced-motion: reduce) {
+  .clickable { transition: none; }
+}

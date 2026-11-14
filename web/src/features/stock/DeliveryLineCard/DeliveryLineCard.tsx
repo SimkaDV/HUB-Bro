@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Input } from "@/shared/ui";
 import { categorySizes, lineQty, lineTotal, unitPrice } from "../delivery";
-import { compareSizes, formatRub } from "../stock";
-import type { Category, DeliveryLine, Model } from "../types";
+import { compareSizes, formatRub } from "@/shared/stock";
+import type { Category, DeliveryLine, Model } from "@/shared/stock";
 import styles from "./DeliveryLineCard.module.css";
 
 type Props = {

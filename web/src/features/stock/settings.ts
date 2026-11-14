@@ -1,11 +1,10 @@
 import { createContext, useContext } from "react";
-import { newId } from "./delivery";
-import { compareSizes, DEFAULT_THRESHOLDS, onHand } from "./stock";
-import type { Category, DisplaySettings, Model, Thresholds } from "./types";
+import { DEFAULT_DISPLAY, DEFAULT_THRESHOLDS, onHand } from "@/shared/stock";
+import type { Category, DisplaySettings, Model, Thresholds } from "@/shared/stock";
 
 // Настройки склада: пороги, архив, скрытые размеры, категории. Описание — docs/WAREHOUSE.md, «Настройки».
 
-export const DEFAULT_DISPLAY: DisplaySettings = { showZeroOnTiles: true, showIncoming: true, tileRows: 2 };
+export { DEFAULT_DISPLAY, ensureCategories } from "@/shared/stock";
 
 /** Пороги модели: свои, если заданы, иначе категории, иначе по умолчанию. */
 export function resolveThresholds(model: Model, categories: Category[]): Thresholds {
@@ -38,22 +37,6 @@ export const canDeleteModel = (m: Model) => m.batches.length === 0 && m.sizes.ev
 
 /** Удалить категорию можно, только если в ней нет моделей (в том числе в архиве). */
 export const canDeleteCategory = (c: Category, models: Model[]) => !models.some((m) => m.category === c.name);
-
-/** Категории, которых ещё нет в списке, создаются по моделям: размеры — все размеры моделей категории. */
-export function ensureCategories(categories: Category[], models: Model[]): Category[] {
-  const missing = [...new Set(models.map((m) => m.category))].filter((name) => !categories.some((c) => c.name === name));
-  return [
-    ...categories,
-    ...missing.map((name) => ({
-      id: newId(),
-      name,
-      sizes: [...new Set(models.filter((m) => m.category === name).flatMap((m) => m.sizes.map((s) => s.size)))].sort(
-        compareSizes,
-      ),
-      thresholds: DEFAULT_THRESHOLDS,
-    })),
-  ];
-}
 
 export const nameTaken = (name: string, names: string[]) =>
   names.some((n) => n.trim().toLowerCase() === name.trim().toLowerCase());
