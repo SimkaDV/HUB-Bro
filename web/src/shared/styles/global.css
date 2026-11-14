@@ -1,0 +1,19 @@
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html {
+  font-family: var(--font);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  background: var(--bg);
+  /* Место под полосу прокрутки всегда занято: когда страница вырастает, ширина не меняется и раскладка не прыгает. */
+  scrollbar-gutter: stable;
+}
+
+body { margin: 0; }
+
+h1, h2, h3, p { margin: 0; }
+
+button { font: inherit; }

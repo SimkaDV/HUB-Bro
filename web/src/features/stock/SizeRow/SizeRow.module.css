@@ -1,0 +1,94 @@
+.size {
+  display: flex;
+  flex-direction: column;
+  scroll-margin-top: var(--space-6);
+}
+
+/* Подсветка размера, к которому перешли по чипу. */
+.flash { animation: flash 1.4s ease-out; }
+
+@keyframes flash {
+  0%, 35% { box-shadow: 0 0 0 4px var(--card); }
+  100% { box-shadow: 0 0 0 4px transparent; }
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-button);
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.head:focus-visible,
+.toggle:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+.summary {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.chevron { flex-shrink: 0; transition: transform 0.15s; }
+.up { transform: rotate(180deg); }
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 680px;
+  padding: var(--space-2) 0 0 var(--space-4);
+}
+
+.hiddenGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 6px;
+}
+
+.line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  min-height: var(--control-height);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.secondary { color: var(--text-secondary); }
+.value { font-weight: 600; }
+
+/* Количество — главное в строке, поэтому первым; ширина одна, чтобы плашки «На складе» стояли ровно. */
+.qty {
+  min-width: 52px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.empty { color: var(--text-secondary); }
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  align-self: flex-start;
+  padding: var(--space-1) 0;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron { transition: none; }
+  .flash { animation: none; }
+}

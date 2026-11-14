@@ -1,0 +1,138 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 760px;
+}
+
+.empty { color: var(--text-secondary); }
+
+.entry {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  transition: opacity 0.25s;
+}
+
+.cancelled { opacity: 0.6; }
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.date {
+  padding: 2px var(--space-2);
+  border-radius: 8px;
+  background: var(--button);
+  color: var(--on-button);
+  font-weight: 600;
+}
+
+.title { font-size: 17px; font-weight: 600; }
+
+.meta { font-size: 14px; color: var(--text-secondary); }
+
+.sizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.size {
+  padding: 3px var(--space-2);
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 14px;
+}
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.confirm {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 14px;
+}
+
+.link,
+.danger {
+  padding: var(--space-1) var(--space-2);
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.link:hover { color: var(--text); }
+
+.danger {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  font-weight: 500;
+}
+
+.locked { font-size: 13px; color: var(--text-secondary); }
+
+.filters {
+  display: flex;
+  align-self: flex-start;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-button);
+  background: var(--card);
+}
+
+.filters button {
+  height: 36px;
+  padding: 0 var(--space-3);
+  border: none;
+  border-radius: 9px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.filters .activeFilter { background: var(--button); color: var(--on-button); }
+
+/* Изменение настроек — компактная строка, чтобы не теряться среди поставок. */
+.settingsEntry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border: 2px solid var(--card);
+  border-radius: var(--radius-card);
+  font-size: 14px;
+}
+
+.time {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.tag {
+  padding: 1px var(--space-2);
+  border-radius: 999px;
+  background: var(--card);
+  font-size: 12px;
+  font-weight: 600;
+}

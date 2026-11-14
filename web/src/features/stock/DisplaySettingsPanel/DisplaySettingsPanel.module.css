@@ -1,0 +1,66 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.toggle,
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.toggle { cursor: pointer; }
+
+.toggle input {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  accent-color: var(--button);
+}
+
+.toggle span,
+.option > span {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toggle small,
+.option small {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.segmented {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-button);
+  background: var(--bg);
+}
+
+.segmented button {
+  width: 44px;
+  height: 36px;
+  border: none;
+  border-radius: 9px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.segmented .active { background: var(--button); color: var(--on-button); }
+
+.note {
+  padding: var(--space-2) var(--space-1);
+  font-size: 13px;
+  color: var(--text-secondary);
+}

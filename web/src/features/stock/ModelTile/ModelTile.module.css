@@ -1,0 +1,80 @@
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-3);
+  border: 2px solid transparent;
+  border-radius: var(--radius-card);
+  background: var(--card);
+  color: var(--text);
+  text-align: center;
+  transition: border-color var(--motion-expand);
+}
+
+.selected { border-color: var(--text); }
+
+.open {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-wrap: balance;
+  cursor: pointer;
+}
+
+/* Растягиваем кнопку на всю плитку. */
+.open::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: var(--radius-card);
+}
+
+.open:focus-visible { outline: none; }
+.open:focus-visible::after { outline: 2px solid var(--text); outline-offset: 2px; }
+
+.category {
+  margin-top: calc(-1 * var(--space-1));
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.chips {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  justify-content: center;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+/* «+N» — открыть модель со всеми размерами. Ведёт себя как чипы размеров. */
+.more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  border: none;
+  border-radius: 7px;
+  background: var(--button);
+  color: var(--on-button);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.more:hover { transform: scale(1.08); }
+.more:active { transform: scale(0.96); }
+.more:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .more { transition: none; }
+}

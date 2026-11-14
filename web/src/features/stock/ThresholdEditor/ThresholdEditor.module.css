@@ -1,0 +1,49 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  transition: opacity 0.15s;
+}
+
+.disabled { opacity: 0.5; }
+
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.input {
+  width: 96px;
+  height: var(--control-height);
+  padding: 0 var(--space-3);
+  border: 2px solid transparent;
+  border-radius: var(--radius-button);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.input:focus { outline: none; border-color: var(--text); }
+
+.preview {
+  display: flex;
+  gap: var(--space-1);
+  padding-bottom: 4px;
+}
+
+.problem {
+  font-size: 13px;
+  color: var(--danger-text);
+}

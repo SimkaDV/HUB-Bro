@@ -1,0 +1,31 @@
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-4);
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.legend b {
+  margin-right: var(--space-1);
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--button);
+  color: var(--on-button);
+}
+
+.legend .zero { color: var(--stock-zero); text-decoration: line-through; }
+.legend .low { color: var(--stock-low); }
+.legend .mid { color: var(--stock-mid); }
+.legend .ok { color: var(--stock-ok); }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+/* Точка, к которой прокручиваем при клике на «+N». */
+.detailAnchor { scroll-margin-top: var(--space-6); }
