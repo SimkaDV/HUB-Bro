@@ -128,6 +128,7 @@
 }
 
 .sizeNote { margin: var(--space-2) 0 0; color: var(--text-secondary); font-size: 14px; }
+.noteLink { color: var(--text); font-weight: 500; }
 
 .chat {
   display: inline-block;

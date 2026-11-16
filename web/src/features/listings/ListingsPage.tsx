@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useConnections } from "@/shared/connections";
+import { useOrders } from "@/shared/orders";
 import { isActive, linkedModel, linkListing, listingsCount, sortListings, syncListings, useListings } from "@/shared/listings";
 import { useStock } from "@/shared/stock";
 import { Button, Card, FilterChip, Input, PageHeader } from "@/shared/ui";
@@ -20,7 +21,12 @@ export default function ListingsPage() {
   const hasKeys = Boolean(avito.clientId && avito.clientSecret);
 
   const [filter, setFilter] = useState<Filter | null>(null);
-  const [query, setQuery] = useState("");
+  // «выбрать товар →» из заказа открывает страницу сразу с поиском по ID объявления.
+  const [params] = useSearchParams();
+  const [query, setQuery] = useState(params.get("q") ?? "");
+  const orders = useOrders();
+  /** Сколько заказов ждут, пока объявлению выберут товар. */
+  const waiting = (id: string) => orders.filter((o) => o.itemId === id && o.problem === "noModel").length;
   const [openId, setOpenId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +61,8 @@ export default function ListingsPage() {
       : current === "active"
         ? listings.filter(isActive)
         : listings;
-  const visible = sortListings(base);
+  // Первыми — объявления, по которым уже ждут заказы.
+  const visible = sortListings(base).sort((a, b) => waiting(b.id) - waiting(a.id));
 
   const subtitle = syncing
     ? "Обновляем с Авито…"
@@ -147,6 +154,7 @@ export default function ListingsPage() {
             model={linkedModel(l, models)}
             models={models}
             categories={categories}
+            waiting={waiting(l.id)}
             open={openId === l.id}
             onToggle={() => setOpenId(openId === l.id ? null : l.id)}
             onLink={(modelId) => linkListing(l.id, modelId)}

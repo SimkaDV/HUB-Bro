@@ -12,13 +12,15 @@ type Props = {
   model?: Model;
   models: Model[];
   categories: Category[];
+  /** Заказы, которые ждут, пока выберут товар. */
+  waiting: number;
   open: boolean;
   onToggle: () => void;
   onLink: (modelId: string | null) => void;
 };
 
 /** Карточка объявления: статус, цена, название, выбор товара. По клику раскрываются подробности. */
-export function ListingCard({ listing, model, models, categories, open, onToggle, onLink }: Props) {
+export function ListingCard({ listing, model, models, categories, waiting, open, onToggle, onLink }: Props) {
   const status = listingStatus(listing);
   const stats = listing.stats;
 
@@ -28,6 +30,7 @@ export function ListingCard({ listing, model, models, categories, open, onToggle
         <span className={styles.badges}>
           <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
           {!model && <StatusBadge tone="warning">Без товара</StatusBadge>}
+          {!model && waiting > 0 && <StatusBadge tone="danger">⚠ Ждут заказы: {waiting}</StatusBadge>}
         </span>
         <span className={styles.price}>{formatRub(listing.price)}</span>
         <span className={styles.title}>{listing.title}</span>
@@ -47,7 +50,7 @@ export function ListingCard({ listing, model, models, categories, open, onToggle
   );
 }
 
-function ProductSelect({ listing, model, models, categories, onLink }: Omit<Props, "open" | "onToggle">) {
+function ProductSelect({ listing, model, models, categories, onLink }: Omit<Props, "open" | "onToggle" | "waiting">) {
   const id = `listing-model-${listing.id}`;
   return (
     <div className={styles.product}>

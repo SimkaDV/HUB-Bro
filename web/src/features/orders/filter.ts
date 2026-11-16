@@ -42,11 +42,12 @@ export function inPeriod(order: Order, period: Period, range: DateRange): boolea
   }
 }
 
-/** Цифры — ищем по номеру Авито, иначе по товару. */
+/** Цифры — ищем по номеру Авито, иначе по товару и названию объявления. */
 export function matchesQuery(order: Order, query: string): boolean {
   const digits = query.replace(/\D/g, "");
   if (digits) return order.id.includes(digits);
-  return order.product.toLowerCase().includes(query.trim().toLowerCase());
+  const q = query.trim().toLowerCase();
+  return order.product.toLowerCase().includes(q) || Boolean(order.itemTitle?.toLowerCase().includes(q));
 }
 
 export type DayGroup = { key: string; title: string; orders: Order[] };

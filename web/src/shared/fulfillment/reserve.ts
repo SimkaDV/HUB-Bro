@@ -12,10 +12,12 @@ const dayMonth = (iso: string) => {
 /**
  * - Заказан / Собран с размером и без резерва → резерв из самой старой поставки (−1 на полке).
  *   Нет джинсы → пометка «Нет на складе» (только у «Заказан»).
+ * - Товара (модели) нет на складе → «Товар не выбран»: у заказа из Авито объявление не привязано.
  * - Заказан без размера → «Без размера».
  * - Отменён с резервом → резерв снят, джинса на полку своей поставки (+1).
  * - Остальные статусы → пометка проблемы снимается (бывает у заказа только в «Заказан»).
  * - Поменяли или убрали размер у заказа с резервом → старый резерв снят (+1), дальше как обычно.
+ * - Поменялся товар (перепривязали объявление) → резерв в старой модели снят, дальше как обычно.
  * Заказы обходим от старых к новым: кто раньше заказал, тому и джинса.
  */
 export function syncReserves(orders: Order[], models: Model[]): { orders: Order[]; models: Model[] } | null {
@@ -37,20 +39,24 @@ export function syncReserves(orders: Order[], models: Model[]): { orders: Order[
   const problems = new Map<string, OrderProblem | undefined>();
   const byAge = [...orders].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 
-  /** Снимает резерв заказа во всех размерах модели, кроме `keep`: джинса на полку своей поставки. */
+  const reservedFor = (o: Order) => (s: Model["sizes"][number]) => s.units.some((u) => u.order === o.id && u.status === "reserve");
+
+  /**
+   * Снимает резерв заказа везде, кроме размера `keep` его товара: джинса на полку своей поставки.
+   * Ищем во всех моделях — товар у заказа мог смениться (перепривязали объявление).
+   */
   const release = (o: Order, keep?: string) => {
-    const model = nextModels.find((m) => m.name === o.product);
-    const stale = model?.sizes.filter((s) => s.size !== keep && s.units.some((u) => u.order === o.id && u.status === "reserve"));
-    if (!stale?.length) return;
-    const m = editable().find((x) => x.name === o.product)!;
-    for (const { size } of stale) {
-      const s = m.sizes.find((x) => x.size === size)!;
-      for (const unit of s.units.filter((u) => u.order === o.id && u.status === "reserve")) {
-        const row = s.stock.find((x) => x.batchId === unit.batchId);
-        if (row) row.qty += 1;
-        else s.stock.push({ batchId: unit.batchId, qty: 1 });
+    const isStale = (m: Model, s: Model["sizes"][number]) => !(m.name === o.product && s.size === keep) && reservedFor(o)(s);
+    if (!nextModels.some((m) => m.sizes.some((s) => isStale(m, s)))) return;
+    for (const m of editable()) {
+      for (const s of m.sizes.filter((x) => isStale(m, x))) {
+        for (const unit of s.units.filter((u) => u.order === o.id && u.status === "reserve")) {
+          const row = s.stock.find((x) => x.batchId === unit.batchId);
+          if (row) row.qty += 1;
+          else s.stock.push({ batchId: unit.batchId, qty: 1 });
+        }
+        s.units = s.units.filter((u) => !(u.order === o.id && u.status === "reserve"));
       }
-      s.units = s.units.filter((u) => !(u.order === o.id && u.status === "reserve"));
     }
   };
 
@@ -66,6 +72,11 @@ export function syncReserves(orders: Order[], models: Model[]): { orders: Order[
       continue;
     }
     release(o, o.size);
+    if (!nextModels.some((m) => m.name === o.product)) {
+      // Сначала товар: без модели ни размер выбрать, ни джинсу найти.
+      problems.set(o.id, o.status === "ordered" ? "noModel" : undefined);
+      continue;
+    }
     if (!o.size) {
       problems.set(o.id, o.status === "ordered" ? "noSize" : undefined);
       continue;

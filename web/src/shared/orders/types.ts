@@ -14,7 +14,7 @@ export type OrderStatus =
   | "defect";
 
 /** Пометка на заказе в «Заказан». Не статус. */
-export type OrderProblem = "noSize" | "noStock";
+export type OrderProblem = "noModel" | "noSize" | "noStock";
 
 /** Служба доставки, куда сдаём посылку. Адреса ПВЗ не храним — только службу. */
 export type DeliveryService = "cdek" | "avito" | "post" | "yandex" | "fivepost";
@@ -31,7 +31,10 @@ export type Order = {
   id: string;
   /** Когда пришла оплаченная сделка, ISO. */
   createdAt: string;
-  /** Название модели склада, к которой привязано объявление. */
+  /**
+   * Товар — название модели склада, по нему сверка находит джинсу. У заказа из Авито ставится сам по привязке
+   * объявления (`itemId` → «Объявления»); объявление без товара — тут название объявления и проблема «Товар не выбран».
+   */
   product: string;
   /** Размер из чата. Нет — бот ещё не прислал. */
   size?: string;
@@ -45,6 +48,8 @@ export type Order = {
   shipBy?: string;
   /** Id объявления Авито. */
   itemId?: string;
+  /** Название объявления на Авито, как пришло. */
+  itemTitle?: string;
   /** Id чата с покупателем (u2i-…). */
   chatId?: string;
   /** Когда последний раз сверяли с Авито, ISO. */
