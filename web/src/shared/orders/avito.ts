@@ -1,8 +1,8 @@
 import type { DeliveryService, Order, OrderStatus } from "./types";
 
 // Как данные кабинета Авито ложатся на наш заказ. Описание — docs/ORDERS.md, раздел 2.
-// Значения — из внутреннего JSON страницы заказов (avito.ru/orders): статус заказа и фильтры списка.
-// Вживую видели только confirmed и accepted, остальные — по названиям фильтров страницы.
+// Значения — из внутреннего JSON страницы заказов (avito.ru/orders), `status.value` у заказа продавца.
+// disputed и waiting_confirmation вживую не видели — по названиям фильтров страницы.
 
 /** Служба Авито (`provider.value`) → наша. Неизвестная — undefined, заказ покажет предупреждение. */
 export const AVITO_SERVICE: Record<string, DeliveryService> = {
@@ -20,14 +20,15 @@ export type AvitoStatusEffect = OrderStatus | "disputed";
 export const AVITO_STATUS: Record<string, AvitoStatusEffect> = {
   waiting_confirmation: "ordered",
   confirmed: "ordered", // «Отправьте заказ»
-  waiting_shipment: "ordered",
-  in_transit: "sent",
-  delivered_in_pvz: "arrived",
-  accepted: "completed", // «Получите оплату»
-  payout_wait: "completed",
-  finished: "completed",
+  performed: "inTransit", // «Едет к покупателю»
+  provided: "arrived", // «Ждёт выдачи покупателю»
+  accepted: "completed", // «Завершён» / «Получите оплату»
+  on_delivery_return: "returnTransit", // «Возврат: заберите заказ»
+  return_performed: "returnTransit", // «Возврат: едет к вам»
+  returned: "returnTransit", // «Закрыт после возврата» — дальше разбор возврата у нас
   canceled: "cancelled",
-  on_return: "returnTransit",
+  canceled_by_buyer: "cancelled",
+  voided: "cancelled",
   disputed: "disputed",
 };
 

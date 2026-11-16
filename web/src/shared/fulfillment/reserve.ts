@@ -14,6 +14,7 @@ const dayMonth = (iso: string) => {
  *   Нет джинсы → пометка «Нет на складе» (только у «Заказан»).
  * - Заказан без размера → «Без размера».
  * - Отменён с резервом → резерв снят, джинса на полку своей поставки (+1).
+ * - Остальные статусы → пометка проблемы снимается (бывает у заказа только в «Заказан»).
  * - Поменяли или убрали размер у заказа с резервом → старый резерв снят (+1), дальше как обычно.
  * Заказы обходим от старых к новым: кто раньше заказал, тому и джинса.
  */
@@ -59,7 +60,11 @@ export function syncReserves(orders: Order[], models: Model[]): { orders: Order[
       problems.set(o.id, undefined);
       continue;
     }
-    if (o.status !== "ordered" && o.status !== "packed") continue;
+    if (o.status !== "ordered" && o.status !== "packed") {
+      // Заказ ушёл дальше (Авито прислал «Едет к покупателю») — пометка проблемы больше не нужна.
+      problems.set(o.id, undefined);
+      continue;
+    }
     release(o, o.size);
     if (!o.size) {
       problems.set(o.id, o.status === "ordered" ? "noSize" : undefined);

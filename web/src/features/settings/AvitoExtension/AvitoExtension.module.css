@@ -1,0 +1,21 @@
+.text { margin: 0; }
+
+.steps {
+  margin: 0;
+  padding-left: var(--space-6);
+  line-height: 1.5;
+}
+
+.area {
+  height: 96px;
+  padding: var(--space-3);
+  resize: vertical;
+  font-size: 14px;
+}
+
+.error {
+  font-size: 13px;
+  color: var(--danger-text);
+}
+
+.error p { margin: 0; }
