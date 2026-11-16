@@ -17,6 +17,8 @@ export type AvitoOrder = {
   payout?: number;
   chatId?: string;
   itemsCount?: number;
+  /** Название из списка заказов — пока карточку не дочитали. */
+  title?: string;
   items?: { itemId: string; title: string; price: number; quantity: number }[];
   dispatchNumber?: string;
   /** Как пишет Авито: «19 ноября». */
@@ -29,6 +31,10 @@ export type AvitoBatch = {
   collectedAt: string;
   account: { id: string; name: string };
   orders: AvitoOrder[];
+  /** Скольким заказам не дочитали карточку (лимит за раз или 429) — дочитаются в следующий сбор. */
+  missingDetails?: number;
+  /** Почему остановились раньше: «Авито просит паузу…». */
+  stopped?: string;
 };
 
 export type ImportReport = {
@@ -42,6 +48,8 @@ export type ImportReport = {
   unknownStatus: string[];
   /** Несколько товаров в заказе — у нас «один заказ = одна джинса». */
   multiItem: string[];
+  /** Скольким заказам не дочитали карточку: нет номера отправления у «Авито» и id объявления. */
+  missingDetails: number;
 };
 
 /** Проверяет, что текст / объект — пачка из расширения. */
@@ -86,7 +94,16 @@ const same = (a: Order, b: Order) => {
  * Заказы, которых нет в пачке, не трогаем и не удаляем.
  */
 export function mergeAvitoBatch(orders: Order[], batch: AvitoBatch, now = new Date().toISOString()) {
-  const report: ImportReport = { account: batch.account.name, added: 0, updated: 0, unchanged: 0, skipped: [], unknownStatus: [], multiItem: [] };
+  const report: ImportReport = {
+    account: batch.account.name,
+    added: 0,
+    updated: 0,
+    unchanged: 0,
+    skipped: [],
+    unknownStatus: [],
+    multiItem: [],
+    missingDetails: batch.missingDetails ?? 0,
+  };
   const byId = new Map(orders.map((o) => [o.id, o]));
   const added: Order[] = [];
 
@@ -106,7 +123,7 @@ export function mergeAvitoBatch(orders: Order[], batch: AvitoBatch, now = new Da
       const fresh: Order = {
         id: a.orderId,
         createdAt: a.createdAt,
-        product: item?.title ?? "Товар Авито",
+        product: item?.title ?? a.title ?? "Товар Авито",
         service,
         ...fields,
         price: item?.price ?? a.payout ?? 0,

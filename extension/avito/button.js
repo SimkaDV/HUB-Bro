@@ -56,9 +56,11 @@
     copyBtn.style.display = "";
     const n = result.batch.orders.length;
     const res = await chrome.runtime.sendMessage({ type: "deliver", batch: result.batch });
-    status.textContent = res?.delivered
-      ? `Собрано ${n}. Передано в кабинет`
-      : `Собрано ${n}. Кабинет не открыт — передам, когда откроете (или скопируйте)`;
+    const rest = result.batch.missingDetails
+      ? ` Не дочитал карточки ${result.batch.missingDetails} заказов — нажмите ещё раз через пару минут.`
+      : "";
+    status.textContent =
+      (res?.delivered ? `Собрано ${n}. Передано в кабинет.` : `Собрано ${n}. Кабинет не открыт — передам, когда откроете (или скопируйте).`) + rest;
   });
 
   copyBtn.addEventListener("click", async () => {

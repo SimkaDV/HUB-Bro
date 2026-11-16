@@ -103,5 +103,8 @@ export function reportWarnings(r: ImportReport): string[] {
     r.skipped.length ? `Не взяли — служба, которой у нас нет: ${list(r.skipped)}` : "",
     r.unknownStatus.length ? `Незнакомый статус Авито, статус не меняли: ${list(r.unknownStatus)}` : "",
     r.multiItem.length ? `Несколько товаров в заказе (у нас одна джинса): ${list(r.multiItem)}` : "",
+    r.missingDetails
+      ? `Не дочитали карточки ${r.missingDetails} заказов (Авито не любит частые запросы) — подтяните ещё раз через пару минут`
+      : "",
   ].filter(Boolean);
 }
