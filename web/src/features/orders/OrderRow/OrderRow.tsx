@@ -10,7 +10,7 @@ import {
   STATUS_META,
   type Order,
 } from "@/shared/orders";
-import { visibleSizes, type Model } from "@/shared/stock";
+import { formatRub, visibleSizes, type Model } from "@/shared/stock";
 import { Button, Collapse, FilterChip, StatusBadge } from "@/shared/ui";
 import { formatDateTime, formatOrderId, formatTime } from "../filter";
 import styles from "./OrderRow.module.css";
@@ -45,6 +45,7 @@ export function OrderRow({ order, model, inBatch, open, onToggle }: Props) {
           </span>
           <span className={styles.meta}>
             №&nbsp;{number} · {formatTime(order.createdAt)} · {SERVICE_LABEL[order.service]}
+            {order.payout !== undefined && <> · {formatRub(order.payout)}</>}
           </span>
         </span>
         <span className={styles.badges}>
@@ -64,7 +65,9 @@ export function OrderRow({ order, model, inBatch, open, onToggle }: Props) {
             <Field label="Служба доставки" value={SERVICE_LABEL[order.service]} />
             {order.dispatchNumber && <Field label="Номер отправления" value={formatDispatch(order.dispatchNumber)} />}
             {order.shipBy && <Field label="Отгрузить до" value={formatShipBy(order.shipBy)} />}
+            {order.payout !== undefined && <Field label="Вам" value={formatRub(order.payout)} />}
           </dl>
+          <Money order={order} />
           {order.status === "ordered" && <SizeEditor order={order} model={model} inBatch={inBatch} />}
           {order.chatId && (
             <a className={styles.chat} href={chatUrl(order.chatId)} target="_blank" rel="noreferrer">
@@ -162,6 +165,36 @@ function SizeEditor({ order, model, inBatch }: { order: Order; model?: Model; in
             Отмена
           </Button>
         </div>
+      )}
+    </div>
+  );
+}
+
+/** «Подробнее»: из чего сложилась сумма «вам» — как в карточке заказа Авито. */
+function Money({ order }: { order: Order }) {
+  const [open, setOpen] = useState(false);
+  const { listPrice, price, payout } = order;
+  if (price === undefined && listPrice === undefined) return null;
+  const rows: [string, number][] = [];
+  if (listPrice !== undefined) rows.push(["Цена объявления", listPrice]);
+  if (listPrice !== undefined && price !== undefined && listPrice > price) rows.push(["Скидка Авито", price - listPrice]);
+  if (price !== undefined) rows.push(["Продано за", price]);
+  if (price !== undefined && payout !== undefined && price > payout) rows.push(["Удержал Авито (комиссия и прочее)", payout - price]);
+  if (payout !== undefined) rows.push(["Вам", payout]);
+  return (
+    <div className={styles.money}>
+      <button type="button" className={styles.reset} aria-expanded={open} onClick={() => setOpen(!open)}>
+        {open ? "Скрыть подробнее ▴" : "Подробнее ▾"}
+      </button>
+      {open && (
+        <dl className={styles.moneyRows}>
+          {rows.map(([label, value]) => (
+            <div key={label}>
+              <dt className={styles.label}>{label}</dt>
+              <dd className={styles.value}>{formatRub(value)}</dd>
+            </div>
+          ))}
+        </dl>
       )}
     </div>
   );

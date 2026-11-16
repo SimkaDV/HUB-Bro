@@ -14,6 +14,21 @@ export const AVITO_SERVICE: Record<string, DeliveryService> = {
   fivepost: "fivepost",
 };
 
+/**
+ * Служба по данным Авито: сначала точное значение (`provider.value`), потом по названию — у 5Post значение
+ * вживую не видели, а Авито может назвать службу по-разному («5Post», «5post-pvz»). Не узнали — undefined.
+ */
+export function avitoService(value?: string, label?: string): DeliveryService | undefined {
+  if (value && AVITO_SERVICE[value]) return AVITO_SERVICE[value];
+  const text = `${value ?? ""} ${label ?? ""}`.toLowerCase();
+  if (/5\s*post|five\s*post|пятёрочк|пятерочк/.test(text)) return "fivepost";
+  if (/yandex|яндекс/.test(text)) return "yandex";
+  if (/cdek|сдэк/.test(text)) return "cdek";
+  if (/pochta|почта/.test(text)) return "post";
+  if (/avito|авито/.test(text)) return "avito";
+  return undefined;
+}
+
 /** Что делать со статусом Авито: перевести в наш или только пометить «Спорный». */
 export type AvitoStatusEffect = OrderStatus | "disputed";
 

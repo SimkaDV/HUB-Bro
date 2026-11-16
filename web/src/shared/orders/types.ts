@@ -51,8 +51,12 @@ export type Order = {
   syncedAt?: string;
   /** Авито пометил заказ спорным. Статус не меняем, только пометка. */
   disputed?: boolean;
-  /** Храним, на экране пока не показываем. */
-  price: number;
+  /** Сколько получим за заказ — «Вы получите» у Авито. Видно в строке заказа. */
+  payout?: number;
+  /** За сколько продан товар (после скидок Авито), ₽. Из карточки заказа. */
+  price?: number;
+  /** Цена объявления до скидок, ₽. Из карточки заказа. */
+  listPrice?: number;
   buyer: string;
   status: OrderStatus;
   problem?: OrderProblem;

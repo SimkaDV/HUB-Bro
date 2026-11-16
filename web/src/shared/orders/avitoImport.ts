@@ -1,4 +1,4 @@
-import { AVITO_SERVICE, AVITO_STATUS, applyAvitoStatus } from "./avito";
+import { AVITO_STATUS, applyAvitoStatus, avitoService } from "./avito";
 import type { Order } from "./types";
 
 // Приём пачки заказов из расширения (кабинет Авито). Описание — docs/ORDERS.md, раздел 2, и docs/EXTENSION.md.
@@ -19,7 +19,8 @@ export type AvitoOrder = {
   itemsCount?: number;
   /** Название из списка заказов — пока карточку не дочитали. */
   title?: string;
-  items?: { itemId: string; title: string; price: number; quantity: number }[];
+  /** `oldPrice` — цена объявления до скидок. */
+  items?: { itemId: string; title: string; price: number; oldPrice?: number; quantity: number }[];
   dispatchNumber?: string;
   /** Как пишет Авито: «19 ноября». */
   shipBy?: string;
@@ -81,6 +82,9 @@ function avitoFields(a: AvitoOrder) {
     shipBy: parseShipBy(a.shipBy ?? (a.status === "confirmed" ? a.info : undefined), a.createdAt),
     itemId: item?.itemId,
     chatId: a.chatId,
+    payout: a.payout,
+    price: item?.price,
+    listPrice: item?.oldPrice,
   };
 }
 
@@ -110,7 +114,7 @@ export function mergeAvitoBatch(orders: Order[], batch: AvitoBatch, now = new Da
   const added: Order[] = [];
 
   for (const a of batch.orders) {
-    const service = a.provider ? AVITO_SERVICE[a.provider] : undefined;
+    const service = avitoService(a.provider, a.providerLabel);
     if (!service) {
       report.skipped.push(`№${a.orderId}: служба «${a.providerLabel ?? a.provider ?? "?"}»`);
       continue;
@@ -128,7 +132,6 @@ export function mergeAvitoBatch(orders: Order[], batch: AvitoBatch, now = new Da
         product: item?.title ?? a.title ?? "Товар Авито",
         service,
         ...fields,
-        price: item?.price ?? a.payout ?? 0,
         buyer: "",
         status: "ordered",
         history: [{ status: "ordered", at: a.createdAt }],
@@ -146,6 +149,9 @@ export function mergeAvitoBatch(orders: Order[], batch: AvitoBatch, now = new Da
         shipBy: fields.shipBy ?? old.shipBy,
         itemId: fields.itemId ?? old.itemId,
         chatId: fields.chatId ?? old.chatId,
+        payout: fields.payout ?? old.payout,
+        price: fields.price ?? old.price,
+        listPrice: fields.listPrice ?? old.listPrice,
       },
       a.status,
       a.updatedAt,

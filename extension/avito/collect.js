@@ -102,6 +102,22 @@ if (!globalThis.__hubbro) {
     return undefined;
   }
 
+  /** Сумма из ответа Авито: число, «1 890 ₽» или объект вида { value: 1890 }. Не нашли — undefined. */
+  function amount(v) {
+    if (typeof v === "number") return v > 0 ? v : undefined;
+    if (typeof v === "string") {
+      const n = Number(v.replace(/[^\d.,]/g, "").replace(",", "."));
+      return n > 0 ? n : undefined;
+    }
+    if (v && typeof v === "object") {
+      for (const k of ["value", "price", "amount", "raw", "formatted", "text"]) {
+        const n = amount(v[k]);
+        if (n) return n;
+      }
+    }
+    return undefined;
+  }
+
   async function card(run, orderId) {
     const j = await getJson(
       run,
@@ -112,7 +128,13 @@ if (!globalThis.__hubbro) {
     if (!main || !Array.isArray(main.items)) throw new CollectError("Авито поменял карточку заказа — обновите расширение");
     const delivery = findWith(j, "deliveryInfo", "sellerDispatchNumber");
     return {
-      items: main.items.map((i) => ({ itemId: String(i.itemId), title: i.title, price: i.price, quantity: i.quantity })),
+      items: main.items.map((i) => ({
+        itemId: String(i.itemId),
+        title: i.title,
+        price: i.price,
+        oldPrice: amount(i.oldPrice),
+        quantity: i.quantity,
+      })),
       dispatchNumber: delivery?.sellerDispatchNumber?.original || undefined,
       shipBy: delivery?.sellerSendTill || undefined,
     };

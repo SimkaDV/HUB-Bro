@@ -17,7 +17,7 @@ export {
   STATUS_META,
   type OrderGroup,
 } from "./statuses";
-export { AVITO_SERVICE, AVITO_STATUS, applyAvitoStatus, type AvitoStatusEffect } from "./avito";
+export { AVITO_SERVICE, AVITO_STATUS, applyAvitoStatus, avitoService, type AvitoStatusEffect } from "./avito";
 export { mergeAvitoBatch, parseAvitoBatch, parseShipBy, type AvitoBatch, type AvitoOrder, type ImportReport } from "./avitoImport";
 export type { DeliveryService, Order, OrderProblem, OrderStatus, StatusChange } from "./types";
 
