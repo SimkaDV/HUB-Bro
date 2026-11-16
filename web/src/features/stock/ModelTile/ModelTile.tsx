@@ -1,5 +1,6 @@
 import { SizeChip } from "../SizeChip/SizeChip";
 import { useStockSettings } from "../settings";
+import { listingsCount, useListings } from "@/shared/listings";
 import { sizesByAttention } from "@/shared/stock";
 import type { Model } from "@/shared/stock";
 import styles from "./ModelTile.module.css";
@@ -26,6 +27,7 @@ export function ModelTile({ model, selected, onSelect, onExpand, onSizeClick }: 
   );
   const shown = sizes.length > maxChips ? sizes.slice(0, maxChips - 1) : sizes;
   const hidden = sizes.length - shown.length;
+  const listings = useListings().listings.filter((l) => l.modelId === model.id).length;
 
   return (
     <div className={`${styles.tile} ${selected ? styles.selected : ""}`}>
@@ -33,6 +35,7 @@ export function ModelTile({ model, selected, onSelect, onExpand, onSizeClick }: 
         {model.name}
       </button>
       <span className={styles.category}>{model.category}</span>
+      {listings > 0 && <span className={styles.listings}>{listingsCount(listings)}</span>}
       <span className={styles.chips}>
         {shown.map((s) => (
           <SizeChip key={s.size} {...s} onClick={() => onSizeClick(s.size)} />

@@ -3,6 +3,7 @@ import PickingPage from "@/features/picking/PickingPage";
 import OrdersPage from "@/features/orders/OrdersPage";
 import StockPage from "@/features/stock/StockPage";
 import LabelsPage from "@/features/labels/LabelsPage";
+import ListingsPage from "@/features/listings/ListingsPage";
 import SettingsPage from "@/features/settings/SettingsPage";
 
 export type AppRoute = {
@@ -17,6 +18,7 @@ export const routes: AppRoute[] = [
   { path: "/picking", label: "Комплектация", element: <PickingPage /> },
   { path: "/stock", label: "Склад", element: <StockPage /> },
   { path: "/orders", label: "Заказы", element: <OrdersPage /> },
+  { path: "/listings", label: "Объявления", element: <ListingsPage /> },
   { path: "/settings", label: "Настройки", element: <SettingsPage /> },
 ];
 
