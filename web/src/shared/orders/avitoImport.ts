@@ -30,6 +30,8 @@ export type AvitoBatch = {
   version: 1;
   collectedAt: string;
   account: { id: string; name: string };
+  /** Какие группы плашки собрали: ship, transit, pvz, returns, finished, canceled. */
+  groups?: string[];
   orders: AvitoOrder[];
   /** Скольким заказам не дочитали карточку (лимит за раз или 429) — дочитаются в следующий сбор. */
   missingDetails?: number;

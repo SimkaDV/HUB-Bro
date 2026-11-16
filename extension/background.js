@@ -41,7 +41,10 @@ function waitLoaded(tabId) {
 
 let collecting = false;
 
-/** Кнопка из кабинета: собираем во вкладке Авито (там вход продавца). Нет вкладки — открываем фоном и закрываем. */
+/**
+ * Кнопка из кабинета: собираем во вкладке Авито (там вход продавца) группы, отмеченные на плашке Авито
+ * (по умолчанию «Ждут отправки», «Едут», «В ПВЗ»). Нет вкладки — открываем фоном и закрываем.
+ */
 async function collectFromHub() {
   if (collecting) return { ok: false, error: "Уже собираю" };
   collecting = true;
@@ -55,7 +58,11 @@ async function collectFromHub() {
     await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["avito/collect.js"] });
     const [{ result }] = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      func: () => globalThis.__hubbroCollect((text) => chrome.runtime.sendMessage({ type: "progress", text })),
+      func: async () => {
+        const hub = globalThis.__hubbro;
+        const { groups, readItems } = await hub.settings();
+        return hub.collect({ groups, readItems }, (text) => chrome.runtime.sendMessage({ type: "progress", text }));
+      },
     });
     if (!result?.ok) return result ?? { ok: false, error: "Сбор не вернул ответ" };
     await deliver(result.batch);

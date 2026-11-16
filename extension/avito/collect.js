@@ -1,42 +1,58 @@
 // Сбор заказов из кабинета Авито. Работает на странице avito.ru под входом продавца: ходит во внутренний
-// JSON сайта (тот же, что грузит страница заказов) и собирает пачку для кабинета HUB BRO.
+// JSON сайта (тот же, что грузит страница заказов). Два шага: «Посчитать» — только списки, по группам;
+// «Собрать» — пачка из отмеченных групп, карточки открываем только там, где без них никак.
 // Описание — docs/EXTENSION.md.
 
-if (!globalThis.__hubbroCollect) {
-  const ACTIVE = ["waiting_confirmation", "waiting_shipment", "in_transit", "delivered_in_pvz", "payout_wait", "on_return", "disputed"];
-  const CLOSED = ["finished", "canceled"];
-  /** Закрытые заказы берём за последние 14 дней. */
+if (!globalThis.__hubbro) {
+  /** Группы на плашке → фильтры списка Авито. `closed` — берём за последние 14 дней. */
+  const GROUPS = [
+    { id: "ship", label: "Ждут отправки", filters: ["waiting_confirmation", "waiting_shipment"] },
+    { id: "transit", label: "Едут к покупателю", filters: ["in_transit"] },
+    { id: "pvz", label: "Ждут в ПВЗ", filters: ["delivered_in_pvz"] },
+    { id: "returns", label: "Возвраты и спорные", filters: ["on_return", "disputed"] },
+    { id: "finished", label: "Завершены (14 дней)", filters: ["payout_wait", "finished"], closed: true },
+    { id: "canceled", label: "Отменены (14 дней)", filters: ["canceled"], closed: true },
+  ];
+  const DEFAULT_SETTINGS = { groups: ["ship", "transit", "pvz"], autoCount: false, readItems: false };
+
   const CLOSED_DAYS = 14;
   const MAX_PAGES = 25;
-  const LIST_PAUSE_MS = 600;
-  const DETAIL_PAUSE_MS = 1000;
-  /** Карточек за один сбор: остальные дочитаются в следующие разы. Авито режет частые запросы (429). */
-  const MAX_DETAILS = 30;
-  /** Паузы перед повтором, если Авито ответил 429. */
+  /** Темп: пауза перед каждым запросом. После 429 до конца сбора идём вдвое медленнее (до ×4). */
+  const PAUSE_MS = { list: 700, card: 1200, account: 0 };
   const RETRY_MS = [10000, 30000, 60000];
-  /** Карточку перечитываем, пока у заказа нет номера отправления и его ещё можно отправить. */
+  /** Карточек за один сбор: остальные дочитаются в следующие разы. */
+  const MAX_CARDS = 30;
+  /** Карточка нужна, пока у заказа нет номера отправления и его можно отправить. */
   const NEED_DISPATCH = ["confirmed", "waiting_confirmation"];
+  /** Номер отправления Авито выдаёт не сразу — без него перечитываем карточку не чаще раза в 30 минут. */
+  const RECHECK_MS = 30 * 60 * 1000;
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
   class CollectError extends Error {}
   class RateLimited extends CollectError {}
 
-  let progress = () => {};
+  /** Журнал запросов одного прогона: чтобы понять, где Авито начинает резать. */
+  function newRun(onProgress) {
+    return { started: Date.now(), slow: 1, log: [], waited: 0, progress: onProgress };
+  }
 
-  async function getJson(url) {
+  async function getJson(run, kind, url) {
     for (let attempt = 0; ; attempt++) {
+      await sleep(PAUSE_MS[kind] * run.slow);
       let res;
       try {
         res = await fetch(url, { credentials: "include", headers: { accept: "application/json" } });
       } catch {
         throw new CollectError("Нет связи с Авито");
       }
+      const retryAfter = res.headers.get("retry-after");
+      run.log.push({ t: Date.now() - run.started, kind, status: res.status, ...(retryAfter ? { retryAfter } : {}) });
       if (res.status === 429) {
+        run.slow = Math.min(run.slow * 2, 4);
         if (attempt >= RETRY_MS.length) throw new RateLimited("Авито просит паузу (429) — попробуйте через несколько минут");
-        const header = Number(res.headers.get("retry-after"));
-        const wait = header > 0 ? Math.min(header * 1000, 120000) : RETRY_MS[attempt];
-        progress(`Авито просит подождать — жду ${Math.round(wait / 1000)} с…`);
+        const wait = Number(retryAfter) > 0 ? Math.min(Number(retryAfter) * 1000, 120000) : RETRY_MS[attempt];
+        run.progress(`Авито просит подождать — жду ${Math.round(wait / 1000)} с…`);
+        run.waited += wait;
         await sleep(wait);
         continue;
       }
@@ -50,24 +66,26 @@ if (!globalThis.__hubbroCollect) {
     }
   }
 
-  async function account() {
-    const j = await getJson("/web/1/profiles/list?limit=3&withEntities=true");
+  async function account(run) {
+    const j = await getJson(run, "account", "/web/1/profiles/list?limit=3&withEntities=true");
     const p = j?.result?.profiles?.find((x) => x.isCurrent);
     if (!p) throw new CollectError("Не понял, какой аккаунт Авито открыт");
     return { id: String(p.profileId), name: p.name };
   }
 
   /** Все страницы одного фильтра. У закрытых останавливаемся, когда вся страница старше 14 дней. */
-  async function listByStatus(status, closed, cutoff) {
+  async function listFilter(run, filter, closed) {
+    const cutoff = new Date(Date.now() - CLOSED_DAYS * 24 * 3600 * 1000);
     const out = [];
     for (let page = 1; page <= MAX_PAGES; page++) {
-      progress(`Список: ${status}, страница ${page}`);
-      const j = await getJson(`/web/1/orders?page=${page}&limit=20&action=sell&status=${status}`);
+      run.progress(`Считаю: ${filter}, страница ${page}`);
+      const j = await getJson(run, "list", `/web/1/orders?page=${page}&limit=20&action=sell&status=${filter}`);
       if (!Array.isArray(j.orders)) throw new CollectError("Авито поменял страницу заказов — обновите расширение");
-      const fresh = closed ? j.orders.filter((o) => new Date(o.updatedAt) >= cutoff) : j.orders;
+      const fresh = (closed ? j.orders.filter((o) => new Date(o.updatedAt) >= cutoff) : j.orders).filter(
+        (o) => o.userKind === "seller",
+      );
       out.push(...fresh);
       if (!j.hasMore || (closed && fresh.length === 0)) break;
-      await sleep(LIST_PAUSE_MS);
     }
     return out;
   }
@@ -84,8 +102,10 @@ if (!globalThis.__hubbroCollect) {
     return undefined;
   }
 
-  async function details(orderId) {
+  async function card(run, orderId) {
     const j = await getJson(
+      run,
+      "card",
       `/web/2/profile/order?referenceID=${orderId}&templateVersion=0&srcp=orders_list&location=Europe%2FMoscow`,
     );
     const main = j?.result?.content?.main?.params;
@@ -98,49 +118,85 @@ if (!globalThis.__hubbroCollect) {
     };
   }
 
-  /**
-   * Собирает пачку: все незакрытые заказы продавца + закрытые за 14 дней, по каждому — карточка (товар,
-   * номер отправления). Карточки кэшируются в chrome.storage и сохраняются по ходу; за раз читаем не больше
-   * MAX_DETAILS — сначала те, что ждут отправки, потом новые. Не успели или Авито попросил паузу — пачка уходит
-   * частичной (`partial`), остальное дочитается в следующий раз.
-   */
-  globalThis.__hubbroCollect = async function collect(onProgress = () => {}) {
-    progress = onProgress;
+  function summary(run) {
+    const n = run.log.length;
+    const limited = run.log.filter((r) => r.status === 429).length;
+    const secs = Math.round((Date.now() - run.started) / 1000);
+    return { requests: n, limited, waitedSec: Math.round(run.waited / 1000), secs };
+  }
+
+  async function saveJournal(run, what) {
+    await chrome.storage.local.set({ journal: { what, at: new Date().toISOString(), ...summary(run), log: run.log } });
+  }
+
+  const fail = (e) => ({ ok: false, error: e instanceof CollectError ? e.message : `Ошибка: ${e?.message ?? e}` });
+
+  /** Последний подсчёт: группы → заказы из списка. Сбор берёт его, если он свежий (5 минут). */
+  let counted = null;
+
+  /** Шаг 1: только списки — сколько заказов в каждой группе. */
+  async function count(onProgress = () => {}) {
+    const run = newRun(onProgress);
     try {
-      const acc = await account();
-      const cutoff = new Date(Date.now() - CLOSED_DAYS * 24 * 3600 * 1000);
-
-      const byId = new Map();
-      for (const status of [...ACTIVE, ...CLOSED]) {
-        for (const o of await listByStatus(status, CLOSED.includes(status), cutoff)) {
-          if (o.userKind === "seller") byId.set(o.orderId, o);
-        }
-        await sleep(LIST_PAUSE_MS);
+      const acc = await account(run);
+      const groups = {};
+      for (const g of GROUPS) {
+        groups[g.id] = [];
+        for (const f of g.filters) groups[g.id].push(...(await listFilter(run, f, g.closed)));
       }
+      counted = { at: Date.now(), account: acc, groups };
+      await saveJournal(run, "Подсчёт");
+      return {
+        ok: true,
+        account: acc,
+        counts: Object.fromEntries(GROUPS.map((g) => [g.id, groups[g.id].length])),
+        stats: summary(run),
+      };
+    } catch (e) {
+      await saveJournal(run, "Подсчёт (ошибка)");
+      return fail(e);
+    }
+  }
 
+  /**
+   * Шаг 2: пачка из отмеченных групп. Карточки — только «Ждут отправки» без номера отправления и не читанные
+   * раньше (и остальные группы, если включено «дочитать товары»), не больше MAX_CARDS, кэш по ходу.
+   */
+  async function collect({ groups: chosen, readItems }, onProgress = () => {}) {
+    if (!counted || Date.now() - counted.at > 5 * 60 * 1000) {
+      const c = await count(onProgress);
+      if (!c.ok) return c;
+    }
+    const run = newRun(onProgress);
+    try {
+      const acc = counted.account;
+      const list = chosen.flatMap((id) => counted.groups[id] ?? []);
       const key = `details.${acc.id}`;
       const cache = (await chrome.storage.local.get(key))[key] ?? {};
-      const list = [...byId.values()];
+
       const urgent = (o) => NEED_DISPATCH.includes(o.status.value);
+      const stale = (c) => !c || (!c.dispatchNumber && !(Date.now() - (c.checkedAt ?? 0) < RECHECK_MS));
       const need = list
-        .filter((o) => !cache[o.orderId] || (!cache[o.orderId].dispatchNumber && urgent(o)))
+        .filter((o) => (urgent(o) ? stale(cache[o.orderId]) : readItems && !cache[o.orderId]))
         .sort((a, b) => Number(urgent(b)) - Number(urgent(a)) || b.createdAt.localeCompare(a.createdAt));
-      const batchOf = need.slice(0, MAX_DETAILS);
+      const now = need.slice(0, MAX_CARDS);
 
       let stopped = "";
-      for (let i = 0; i < batchOf.length; i++) {
-        progress(`Карточки заказов: ${i + 1} из ${batchOf.length}${need.length > batchOf.length ? ` (всего ждут ${need.length})` : ""}`);
+      let read = 0;
+      for (let i = 0; i < now.length; i++) {
+        run.progress(`Карточки заказов: ${i + 1} из ${now.length}${need.length > now.length ? ` (ждут ${need.length})` : ""}`);
         try {
-          cache[batchOf[i].orderId] = await details(batchOf[i].orderId);
+          cache[now[i].orderId] = { ...(await card(run, now[i].orderId)), checkedAt: Date.now() };
+          read += 1;
         } catch (e) {
           if (!(e instanceof RateLimited)) throw e;
           stopped = e.message;
           break;
         }
         if (i % 5 === 4) await chrome.storage.local.set({ [key]: cache });
-        await sleep(DETAIL_PAUSE_MS);
       }
       await chrome.storage.local.set({ [key]: cache });
+      await saveJournal(run, "Сбор");
 
       const orders = list.map((o) => ({
         orderId: o.orderId,
@@ -158,22 +214,35 @@ if (!globalThis.__hubbroCollect) {
         title: o.imgSet?.[0]?.alt || undefined,
         ...cache[o.orderId],
       }));
-      const missing = list.filter((o) => !cache[o.orderId]).length;
+      const missing = need.length - read;
 
       return {
         ok: true,
+        stats: summary(run),
         batch: {
           kind: "hubbro.avito-orders",
           version: 1,
           collectedAt: new Date().toISOString(),
           account: acc,
+          groups: chosen,
           orders,
-          ...(missing ? { missingDetails: missing } : {}),
+          ...(missing > 0 ? { missingDetails: missing } : {}),
           ...(stopped ? { stopped } : {}),
         },
       };
     } catch (e) {
-      return { ok: false, error: e instanceof CollectError ? e.message : `Ошибка: ${e?.message ?? e}` };
+      await saveJournal(run, "Сбор (ошибка)");
+      return fail(e);
     }
-  };
+  }
+
+  async function settings() {
+    return { ...DEFAULT_SETTINGS, ...(await chrome.storage.local.get("settings")).settings };
+  }
+
+  async function saveSettings(patch) {
+    await chrome.storage.local.set({ settings: { ...(await settings()), ...patch } });
+  }
+
+  globalThis.__hubbro = { GROUPS, count, collect, settings, saveSettings };
 }
