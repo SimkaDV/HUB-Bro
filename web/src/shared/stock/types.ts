@@ -64,6 +64,8 @@ export type Model = {
 export type Category = {
   id: string;
   name: string;
+  /** Код на бирке: 1–4 буквы или цифры, «КЛ». Пишется после номера заказа: N338871-КЛ. Уникален. */
+  code?: string;
   /** Шаблон размеров: новая модель категории получает их, окно поставки их подсказывает. */
   sizes: string[];
   thresholds: Thresholds;

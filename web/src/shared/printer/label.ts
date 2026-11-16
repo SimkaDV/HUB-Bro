@@ -1,25 +1,51 @@
 // Генератор бирки: рисуем её на холсте в точках принтера и переводим в чёрно-белое.
 // Холст после renderLabel — ровно то, что выйдет на бумаге: его же показываем в превью и шлём принтеру.
-import qrcode from "qrcode-generator";
-import { formatOrderId } from "@/shared/orders";
-import { DOTS_PER_MM, type PrinterSettings } from "./settings";
+// Раскладка — docs/SETTINGS.md, «Бирка».
+import { formatDispatch } from "@/shared/orders";
+import { code128Bars, code128Width } from "./code128";
+import { DOTS_PER_MM, type LabelLayout, type PrinterSettings } from "./settings";
 
 export type LabelData = {
-  /** Номер заказа — номер сделки Авито. Он же зашит в QR. */
+  /** Номер заказа — номер сделки Авито. На бирке — «N» и последние 6 цифр. */
   orderId: string;
+  /** Модель склада. Печатается только в раскладке «С названием». */
   product: string;
   size: string;
+  /** Код категории на бирке («КЛ»). Нет — номер без приписки. */
+  categoryCode?: string;
+  /** Номер отправления — в штрихкоде, его пикают в ПВЗ. Нет — вместо штрихкода пометка. */
+  dispatchNumber?: string;
+  /** Служба доставки, подписью: «Авито», «Почта». */
+  service: string;
 };
 
 /** Пример для превью и пробной печати. */
-export const SAMPLE_LABEL: LabelData = { orderId: "4812338871", product: "Джинсы Трубы", size: "31M" };
+export const SAMPLE_LABEL: LabelData = {
+  orderId: "70000000566033529",
+  product: "Джинсы Клёш",
+  size: "33L",
+  categoryCode: "КЛ",
+  dispatchNumber: "8051222733459",
+  service: "Авито",
+};
 
-// Раскладка нарисована под бирку 80×50 мм (640×400 точек) и масштабируется под другие размеры.
-const BASE_W = 640;
-const BASE_H = 400;
-const PAD = 24;
-const QR_BOX = 232;
-const LOGO = 104;
+/** «70000000566033529» + «КЛ» → «N033529-КЛ». */
+export function shortNumber(orderId: string, code?: string) {
+  const digits = orderId.replace(/\D/g, "");
+  return `N${digits.slice(-6).padStart(6, "0")}${code ? `-${code}` : ""}`;
+}
+
+// Раскладка нарисована под бирку 40×58 мм (320×464 точки) и масштабируется под другие размеры.
+const BASE_W = 320;
+const BASE_H = 464;
+const PAD = 14;
+const LOGO = 112; // 14 мм
+const BARCODE_TOP = 268;
+const BARCODE_H = 112;
+/** Белые поля штрихкода по бокам, в точках принтера: 2,5 мм — меньше сканер может не взять. */
+const QUIET = Math.ceil(2.5 * DOTS_PER_MM);
+/** Модуль штрихкода не шире 3 точек: шире не нужно, а 1 точка — уже на грани читаемости. */
+const MAX_MODULE = 3;
 const FONT = "Onest, system-ui, sans-serif";
 /** Светлее — белое, темнее — чёрное. Принтер не умеет серый: точка либо прожжена, либо нет. */
 const THRESHOLD = 140;
@@ -60,6 +86,54 @@ function fitFont(ctx: CanvasRenderingContext2D, text: string, weight: number, ma
   return size;
 }
 
+/** Текст по словам в строки шириной width. */
+function wrap(ctx: CanvasRenderingContext2D, text: string, width: number) {
+  const lines: string[] = [];
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    const last = lines[lines.length - 1];
+    if (last && ctx.measureText(`${last} ${word}`).width <= width) lines[lines.length - 1] = `${last} ${word}`;
+    else lines.push(word);
+  }
+  return lines;
+}
+
+/** Название товара в прямоугольник: самый крупный шрифт, при котором влезает в 3 строки. */
+function drawName(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, width: number, height: number) {
+  let size = 44;
+  let lines: string[] = [];
+  for (; size >= 16; size -= 2) {
+    ctx.font = `500 ${size}px ${FONT}`;
+    lines = wrap(ctx, text, width);
+    const fits = lines.length <= 3 && lines.length * size * 1.1 <= height && lines.every((l) => ctx.measureText(l).width <= width);
+    if (fits) break;
+  }
+  ctx.textBaseline = "top";
+  lines.slice(0, 3).forEach((line, i) => ctx.fillText(line, x, y + i * size * 1.1, width));
+}
+
+/** Штрихкод в точках принтера: модуль — целое число точек, иначе сканер спотыкается. */
+function drawBarcode(ctx: CanvasRenderingContext2D, text: string | undefined, width: number, top: number, height: number, k: number) {
+  if (!text) {
+    // Номер отправления ещё не пришёл: место штрихкода с пометкой, чтобы бирку не наклеили как готовую.
+    ctx.lineWidth = 3;
+    ctx.strokeRect(QUIET, top, width - QUIET * 2, height);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    fitFont(ctx, "Нет номера отправления", 600, Math.round(24 * k), 12, width - QUIET * 2 - 16);
+    ctx.fillText("Нет номера отправления", width / 2, top + height / 2);
+    ctx.textAlign = "left";
+    return;
+  }
+  const bars = code128Bars(text);
+  const modules = code128Width(bars);
+  const module = Math.max(1, Math.min(MAX_MODULE, Math.floor((width - QUIET * 2) / modules)));
+  let x = Math.round((width - modules * module) / 2);
+  bars.forEach((w, i) => {
+    if (i % 2 === 0) ctx.fillRect(x, top, w * module, height);
+    x += w * module;
+  });
+}
+
 /** Рисует бирку и возвращает чёрно-белый холст в точках принтера. */
 export async function renderLabel(data: LabelData, settings: PrinterSettings): Promise<HTMLCanvasElement> {
   const [logo] = await Promise.all([loadLogo(), loadFonts()]);
@@ -70,61 +144,65 @@ export async function renderLabel(data: LabelData, settings: PrinterSettings): P
   const ctx = canvas.getContext("2d")!;
   ctx.fillStyle = "#fff";
   ctx.fillRect(0, 0, width, height);
+  ctx.fillStyle = "#000";
+  ctx.strokeStyle = "#000";
 
   // Масштаб раскладки под размер бирки, по центру.
   const k = Math.min(width / BASE_W, height / BASE_H);
   const ox = (width - BASE_W * k) / 2;
   const oy = (height - BASE_H * k) / 2;
+  const layout: LabelLayout = settings.layout;
+  const inner = BASE_W - PAD * 2;
+  const number = shortNumber(data.orderId, data.categoryCode);
 
-  // QR справа, рисуем в точках принтера: каждый модуль — целое число точек, иначе сканер спотыкается.
-  const qr = qrcode(0, "M");
-  qr.addData(data.orderId);
-  qr.make();
-  const count = qr.getModuleCount();
-  const cell = Math.max(1, Math.floor((QR_BOX * k) / count));
-  const qrSize = cell * count;
-  const qrX = Math.round(ox + (BASE_W - PAD) * k - qrSize);
-  const qrY = Math.round((height - qrSize) / 2);
-  ctx.fillStyle = "#000";
-  for (let r = 0; r < count; r++) {
-    for (let c = 0; c < count; c++) {
-      if (qr.isDark(r, c)) ctx.fillRect(qrX + c * cell, qrY + r * cell, cell, cell);
-    }
-  }
+  // Штрихкод рисуем в точках принтера, без масштаба раскладки.
+  drawBarcode(ctx, data.dispatchNumber, width, Math.round(oy + BARCODE_TOP * k), Math.round(BARCODE_H * k), k);
 
-  // Левая колонка: логотип, товар, размер, номер.
   ctx.save();
   ctx.translate(ox, oy);
   ctx.scale(k, k);
-  const colW = (qrX - ox) / k - PAD * 2;
 
-  if (logo) ctx.drawImage(logo, PAD, PAD, LOGO, LOGO);
+  if (layout === "full") {
+    // Лого слева, рядом название товара, под лого номер.
+    if (logo) ctx.drawImage(logo, PAD, PAD, LOGO, LOGO);
+    const nameX = PAD + LOGO + 12;
+    drawName(ctx, data.product, nameX, PAD, BASE_W - nameX - PAD, LOGO);
+    ctx.textBaseline = "alphabetic";
+    fitFont(ctx, number, 600, 26, 14, inner);
+    ctx.fillText(number, PAD, PAD + LOGO + 26);
+    drawSize(ctx, data.size, 216, 108, inner);
+  } else {
+    // Без названия: лого по центру, размер, под ним номер.
+    if (logo) ctx.drawImage(logo, (BASE_W - LOGO) / 2, PAD, LOGO, LOGO);
+    drawSize(ctx, data.size, 184, 92, inner);
+    ctx.textBaseline = "alphabetic";
+    fitFont(ctx, number, 600, 26, 14, inner);
+    ctx.fillText(number, PAD, BARCODE_TOP - 10);
+  }
 
-  ctx.fillStyle = "#000";
+  // Под штрихкодом — номер отправления группами (для глаз, если сканер не взял) и служба: куда нести.
+  ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
-  fitFont(ctx, data.product, 500, 40, 22, colW);
-  ctx.fillText(data.product, PAD, 176, colW);
-
-  // Размер — крупно, белым на чёрной плашке: при расклейке смотрят прежде всего на него.
-  const sizeFont = fitFont(ctx, data.size, 600, 72, 36, colW - 40);
-  const plateW = Math.min(colW, ctx.measureText(data.size).width + 40);
-  const plateH = sizeFont + 24;
-  ctx.beginPath();
-  ctx.roundRect(PAD, 200, plateW, plateH, 14);
-  ctx.fill();
-  ctx.fillStyle = "#fff";
-  ctx.textBaseline = "middle";
-  ctx.fillText(data.size, PAD + 20, 200 + plateH / 2 + sizeFont * 0.04);
-
-  ctx.fillStyle = "#000";
-  ctx.textBaseline = "alphabetic";
-  const number = `№ ${formatOrderId(data.orderId)}`;
-  fitFont(ctx, number, 500, 32, 18, colW);
-  ctx.fillText(number, PAD, BASE_H - PAD - 4);
+  if (data.dispatchNumber) {
+    const dispatch = formatDispatch(data.dispatchNumber);
+    fitFont(ctx, dispatch, 600, 34, 16, inner);
+    ctx.fillText(dispatch, BASE_W / 2, BARCODE_TOP + BARCODE_H + 34);
+  }
+  fitFont(ctx, data.service, 600, 26, 14, inner);
+  ctx.fillText(data.service, BASE_W / 2, BASE_H - PAD - 2);
   ctx.restore();
 
   toBlackAndWhite(ctx, width, height);
   return canvas;
+}
+
+/** Размер — самое крупное на бирке: при расклейке смотрят прежде всего на него. */
+function drawSize(ctx: CanvasRenderingContext2D, size: string, middle: number, max: number, width: number) {
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  fitFont(ctx, size, 600, max, 40, width);
+  ctx.fillText(size, BASE_W / 2, middle);
+  ctx.textAlign = "left";
 }
 
 function toBlackAndWhite(ctx: CanvasRenderingContext2D, width: number, height: number) {

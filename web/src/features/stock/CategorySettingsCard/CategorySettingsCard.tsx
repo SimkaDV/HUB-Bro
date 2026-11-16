@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Collapse, Input } from "@/shared/ui";
 import { SizeListEditor } from "../SizeListEditor/SizeListEditor";
 import { ThresholdEditor } from "../ThresholdEditor/ThresholdEditor";
-import { canDeleteCategory, formatThresholds, nameTaken } from "../settings";
+import { canDeleteCategory, formatThresholds, nameTaken, normalizeCode } from "../settings";
 import { compareSizes } from "@/shared/stock";
 import type { ChangeSettings } from "../store";
 import type { Category, Model } from "@/shared/stock";
@@ -20,6 +20,8 @@ export function CategorySettingsCard({ category, categories, models, change }: P
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(category.name);
   useEffect(() => setName(category.name), [category.name]);
+  const [code, setCode] = useState(category.code ?? "");
+  useEffect(() => setCode(category.code ?? ""), [category.code]);
 
   const inCategory = models.filter((m) => m.category === category.name);
   const withOwn = inCategory.filter((m) => m.thresholds).length;
@@ -27,6 +29,11 @@ export function CategorySettingsCard({ category, categories, models, change }: P
     ? "Впишите название"
     : name.trim() !== category.name && nameTaken(name, categories.map((c) => c.name))
       ? "Такая категория уже есть"
+      : null;
+
+  const codeProblem =
+    code && code !== category.code && categories.some((c) => c.id !== category.id && c.code === code)
+      ? "Такой код уже у другой категории"
       : null;
 
   const patch = (text: string, fn: (c: Category) => Category) =>
@@ -42,6 +49,14 @@ export function CategorySettingsCard({ category, categories, models, change }: P
     }));
   };
 
+  const commitCode = () => {
+    const prev = category.code ?? "";
+    if (codeProblem || code === prev) return setCode(prev);
+    patch(`Категория «${category.name}»: код на бирке ${prev || "—"} → ${code || "—"}`, ({ code: _, ...c }) =>
+      code ? { ...c, code } : c,
+    );
+  };
+
   const setSizes = (sizes: string[], text: string) => patch(text, (c) => ({ ...c, sizes }));
 
   return (
@@ -49,6 +64,7 @@ export function CategorySettingsCard({ category, categories, models, change }: P
       <button type="button" className={styles.head} aria-expanded={open} onClick={() => setOpen(!open)}>
         <span className={styles.title}>{category.name}</span>
         <span className={styles.meta}>
+          {category.code ? `${category.code} · ` : ""}
           {inCategory.length} мод. · {category.sizes.length} разм. в шаблоне · пороги {formatThresholds(category.thresholds)}
         </span>
         <svg className={`${styles.chevron} ${open ? styles.up : ""}`} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -69,6 +85,25 @@ export function CategorySettingsCard({ category, categories, models, change }: P
               onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
             />
             {nameProblem && <span className={styles.problem}>{nameProblem}</span>}
+          </div>
+          <div className={styles.nameField}>
+            <Input
+              id={`cat-code-${category.id}`}
+              label="Код на бирке"
+              className={styles.onCard}
+              value={code}
+              placeholder="КЛ"
+              onChange={(e) => setCode(normalizeCode(e.target.value))}
+              onBlur={commitCode}
+              onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+            />
+            {codeProblem ? (
+              <span className={styles.problem}>{codeProblem}</span>
+            ) : (
+              <span className={styles.hint}>
+                До 4 букв или цифр, пишется после номера заказа: N338871{code ? `-${code}` : "-КЛ"}
+              </span>
+            )}
           </div>
         </div>
 

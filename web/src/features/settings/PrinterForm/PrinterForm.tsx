@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import {
   DEFAULT_PRINTER,
+  LABEL_LAYOUTS,
+  ORIENTATIONS,
   outOfRange,
   pairPrinter,
   PRINTER_LIMITS,
@@ -12,11 +14,12 @@ import {
   SAMPLE_LABEL,
   savePrinter,
   usePrinterLink,
+  type LabelLayout,
   type PrinterLinkState,
   type PrinterNumberKey,
   type PrinterSettings,
 } from "@/shared/printer";
-import { Button } from "@/shared/ui";
+import { Button, FilterChip } from "@/shared/ui";
 import { formatSavedAt } from "../format";
 import form from "../form.module.css";
 import styles from "./PrinterForm.module.css";
@@ -41,7 +44,7 @@ export function PrinterForm({ saved }: { saved: PrinterSettings }) {
   const [draft, setDraft] = useState<Draft>(() => strip(saved));
   const [pairError, setPairError] = useState("");
   const [test, setTest] = useState<TestState>({ kind: "idle" });
-  const [preview, setPreview] = useState("");
+  const [previews, setPreviews] = useState<Partial<Record<LabelLayout, string>>>({});
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((d) => ({ ...d, [key]: value }));
 
   const base = strip(saved);
@@ -56,9 +59,13 @@ export function PrinterForm({ saved }: { saved: PrinterSettings }) {
   useEffect(() => {
     if (!sizeOk) return;
     let alive = true;
-    void renderLabel(SAMPLE_LABEL, { ...DEFAULT_PRINTER, labelWidth, labelHeight }).then(
-      (canvas) => alive && setPreview(canvas.toDataURL()),
-    );
+    void Promise.all(
+      LABEL_LAYOUTS.map(({ id }) =>
+        renderLabel(SAMPLE_LABEL, { ...DEFAULT_PRINTER, layout: id, labelWidth, labelHeight }).then(
+          (canvas) => [id, canvas.toDataURL()] as const,
+        ),
+      ),
+    ).then((list) => alive && setPreviews(Object.fromEntries(list)));
     return () => {
       alive = false;
     };
@@ -84,7 +91,9 @@ export function PrinterForm({ saved }: { saved: PrinterSettings }) {
   };
 
   const numberField = (key: PrinterNumberKey, label: string, unit: string) => {
-    const { min, max } = PRINTER_LIMITS[key];
+    const { min } = PRINTER_LIMITS[key];
+    // Повёрнутая бирка идёт высотой поперёк ленты — высота не больше ширины печати.
+    const max = key === "labelHeight" && draft.orientation === "vertical" ? PRINTER_LIMITS.labelWidth.max : PRINTER_LIMITS[key].max;
     const wrong = bad.includes(key);
     return (
       <label className={form.field}>
@@ -117,7 +126,7 @@ export function PrinterForm({ saved }: { saved: PrinterSettings }) {
       }}
     >
       <p className={styles.model}>
-        <b>{PRINTER_MODEL}</b> — термопринтер бирок: 203 dpi, лента до 80 мм. Печатаем прямо из Chrome по USB, без
+        <b>{PRINTER_MODEL}</b> — термопринтер бирок: 203 dpi, лента до 80 мм. Наша бирка — 40×58 мм. Печатаем прямо из Chrome по USB, без
         драйвера и программ.
       </p>
 
@@ -139,21 +148,34 @@ export function PrinterForm({ saved }: { saved: PrinterSettings }) {
 
       <fieldset className={styles.group}>
         <legend className={form.label}>Бирка</legend>
-        <div className={styles.labelRow}>
-          <div className={styles.grid}>
-            {numberField("labelWidth", "Ширина", "мм")}
-            {numberField("labelHeight", "Высота", "мм")}
-            {numberField("gap", "Зазор", "мм")}
-          </div>
-          <figure className={styles.preview}>
-            {preview && sizeOk ? (
-              <img className={styles.sticker} src={preview} alt="Превью бирки: так она выйдет на бумаге" />
-            ) : (
-              <span className={styles.noPreview}>Размер вне границ</span>
-            )}
-            <figcaption className={form.hint}>Так выйдет на бумаге (пример заказа)</figcaption>
-          </figure>
+        <div className={styles.grid}>
+          {numberField("labelWidth", "Ширина", "мм")}
+          {numberField("labelHeight", "Высота", "мм")}
+          {numberField("gap", "Зазор", "мм")}
         </div>
+        <div className={styles.layouts} role="radiogroup" aria-label="Раскладка бирки">
+          {LABEL_LAYOUTS.map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              role="radio"
+              aria-checked={draft.layout === id}
+              className={`${styles.layout} ${draft.layout === id ? styles.picked : ""}`}
+              onClick={() => set("layout", id)}
+            >
+              {previews[id] && sizeOk ? (
+                <img className={styles.sticker} src={previews[id]} alt={`Бирка «${label}»: так она выйдет на бумаге`} />
+              ) : (
+                <span className={styles.noPreview}>{sizeOk ? "" : "Размер вне границ"}</span>
+              )}
+              <span className={styles.layoutName}>{label}</span>
+            </button>
+          ))}
+        </div>
+        <span className={form.hint}>
+          Так выйдет на бумаге (пример заказа). Печатается выбранная. Номер — N и 6 последних цифр заказа Авито, после
+          дефиса код категории со склада; штрихкод — номер отправления.
+        </span>
       </fieldset>
 
       <fieldset className={styles.group}>
@@ -162,11 +184,24 @@ export function PrinterForm({ saved }: { saved: PrinterSettings }) {
           {numberField("density", "Плотность", "")}
           {numberField("speed", "Скорость", "дюйм/с")}
         </div>
+        <div className={styles.orientation}>
+          <span className={form.label}>Ориентация печати</span>
+          <div className={styles.chips} role="group" aria-label="Ориентация печати">
+            {ORIENTATIONS.map(({ id, label }) => (
+              <FilterChip key={id} label={label} selected={draft.orientation === id} onClick={() => set("orientation", id)} />
+            ))}
+          </div>
+          <span className={form.hint}>
+            {draft.orientation === "vertical"
+              ? "Бирку поворачиваем на 90° — для ленты, которая идёт широкой стороной поперёк. Вышла боком — выбери «Горизонтальная»."
+              : "Бирка уходит как нарисована, без поворота. Вышла боком — выбери «Вертикальная»."}
+          </span>
+        </div>
         <label className={styles.check}>
           <input type="checkbox" checked={draft.flip} onChange={(e) => set("flip", e.target.checked)} />
           Перевернуть бирку — если выходит вверх ногами
         </label>
-        <span className={form.hint}>Бледно — прибавь плотность, QR смазывается — убавь скорость.</span>
+        <span className={form.hint}>Бледно — прибавь плотность, штрихкод смазывается — убавь скорость.</span>
       </fieldset>
 
       {test.kind !== "idle" && (
