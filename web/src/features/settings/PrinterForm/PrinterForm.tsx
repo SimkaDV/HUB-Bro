@@ -1,70 +1,107 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  DEFAULT_PRINTER,
+  outOfRange,
+  pairPrinter,
+  PRINTER_LIMITS,
+  PRINTER_MODEL,
+  PrinterError,
+  printLabels,
+  renderLabel,
+  resetPrinter,
+  SAMPLE_LABEL,
+  savePrinter,
+  usePrinterLink,
+  type PrinterLinkState,
+  type PrinterNumberKey,
+  type PrinterSettings,
+} from "@/shared/printer";
 import { Button } from "@/shared/ui";
-import { DEFAULT_PRINTER, PRINTER_LIMITS, PRINTER_MODEL, resetPrinter, savePrinter } from "../connections";
-import type { PrinterLink, PrinterSettings, PrintMethod } from "../connections";
 import { formatSavedAt } from "../format";
 import form from "../form.module.css";
 import styles from "./PrinterForm.module.css";
 
 type Draft = Omit<PrinterSettings, "savedAt">;
-type NumberKey = keyof typeof PRINTER_LIMITS;
+type TestState = { kind: "idle" } | { kind: "sending" } | { kind: "sent"; at: Date } | { kind: "error"; text: string };
 
-const METHODS: { id: PrintMethod; label: string; text: string }[] = [
-  {
-    id: "agent",
-    label: "Print Agent",
-    text: "Программа на компьютере склада сама печатает партии с пульта, без окон и драйвера. Нужен сервер.",
-  },
-  {
-    id: "browser",
-    label: "Окно печати браузера",
-    text: "Пульт открывает обычное окно печати, бирки идут страницами. Работает сразу, но через драйвер и с кликом на каждую партию.",
-  },
-];
-
-const LINKS: { id: PrinterLink; label: string }[] = [
-  { id: "usb", label: "USB" },
-  { id: "network", label: "Сеть" },
-];
+const LINK_HINT: Record<PrinterLinkState, string> = {
+  unsupported: "Этот браузер не умеет печатать по USB. Открой кабинет в Chrome или Edge.",
+  notPaired: "Воткни принтер по USB, включи его и нажми «Подключить принтер» — Chrome покажет список устройств.",
+  notFound: "Принтер выбран, но сейчас не виден. Проверь кабель и питание — подхватится сам.",
+  ready: "Принтер на связи. Chrome его запомнил — в следующий раз ничего нажимать не надо.",
+};
 
 const strip = ({ savedAt: _, ...rest }: PrinterSettings): Draft => rest;
 
-/** Предполагаемые настройки Xprinter XP-365B. Проверим, когда принтер будет на складе. */
+const errorText = (e: unknown) => (e instanceof PrinterError ? e.message : `Ошибка: ${e instanceof Error ? e.message : String(e)}`);
+
+/** Принтер Xprinter XP-365B: подключение по WebUSB, бирка, плотность и скорость, пробная печать. */
 export function PrinterForm({ saved }: { saved: PrinterSettings }) {
+  const link = usePrinterLink();
   const [draft, setDraft] = useState<Draft>(() => strip(saved));
+  const [pairError, setPairError] = useState("");
+  const [test, setTest] = useState<TestState>({ kind: "idle" });
+  const [preview, setPreview] = useState("");
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((d) => ({ ...d, [key]: value }));
 
   const base = strip(saved);
   const changed = (Object.keys(base) as (keyof Draft)[]).some((k) => draft[k] !== base[k]);
   const isDefault = (Object.keys(DEFAULT_PRINTER) as (keyof Draft)[]).every((k) => base[k] === DEFAULT_PRINTER[k]);
-  const outOfRange = (Object.keys(PRINTER_LIMITS) as NumberKey[]).filter((k) => {
-    const { min, max } = PRINTER_LIMITS[k];
-    return !Number.isFinite(draft[k]) || draft[k] < min || draft[k] > max;
-  });
-  const agent = draft.method === "agent";
-  const ipMissing = agent && draft.link === "network" && !draft.ip.trim();
-  const canSave = changed && outOfRange.length === 0 && !ipMissing;
+  const bad = outOfRange(draft);
+  const canSave = changed && bad.length === 0;
+  const sizeOk = !bad.includes("labelWidth") && !bad.includes("labelHeight");
 
-  const numberField = (key: NumberKey, label: string, unit: string) => {
+  // Превью — та же картинка, что уйдёт на принтер, в его точках.
+  const { labelWidth, labelHeight } = draft;
+  useEffect(() => {
+    if (!sizeOk) return;
+    let alive = true;
+    void renderLabel(SAMPLE_LABEL, { ...DEFAULT_PRINTER, labelWidth, labelHeight }).then(
+      (canvas) => alive && setPreview(canvas.toDataURL()),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [labelWidth, labelHeight, sizeOk]);
+
+  const pair = async () => {
+    setPairError("");
+    try {
+      await pairPrinter();
+    } catch (e) {
+      setPairError(errorText(e));
+    }
+  };
+
+  const testPrint = async () => {
+    setTest({ kind: "sending" });
+    try {
+      await printLabels([SAMPLE_LABEL], { ...draft });
+      setTest({ kind: "sent", at: new Date() });
+    } catch (e) {
+      setTest({ kind: "error", text: errorText(e) });
+    }
+  };
+
+  const numberField = (key: PrinterNumberKey, label: string, unit: string) => {
     const { min, max } = PRINTER_LIMITS[key];
-    const bad = outOfRange.includes(key);
+    const wrong = bad.includes(key);
     return (
       <label className={form.field}>
         <span className={form.label}>{label}</span>
         <span className={styles.unitInput}>
           <input
-            className={`${form.input} ${bad ? styles.bad : ""}`}
+            className={`${form.input} ${wrong ? styles.bad : ""}`}
             type="number"
             inputMode="numeric"
             min={min}
             max={max}
             value={Number.isFinite(draft[key]) ? draft[key] : ""}
-            disabled={!agent && (key === "density" || key === "speed")}
             onChange={(e) => set(key, e.target.value === "" ? NaN : Number(e.target.value))}
           />
           <span className={styles.unit}>{unit}</span>
         </span>
-        <span className={`${form.hint} ${bad ? styles.badHint : ""}`}>
+        <span className={`${form.hint} ${wrong ? styles.badHint : ""}`}>
           от {min} до {max}
         </span>
       </label>
@@ -80,60 +117,25 @@ export function PrinterForm({ saved }: { saved: PrinterSettings }) {
       }}
     >
       <p className={styles.model}>
-        <b>{PRINTER_MODEL}</b> — термопринтер бирок: 203 dpi, лента до 80 мм, подключается по USB, понимает команды TSPL.
+        <b>{PRINTER_MODEL}</b> — термопринтер бирок: 203 dpi, лента до 80 мм. Печатаем прямо из Chrome по USB, без
+        драйвера и программ.
       </p>
 
       <fieldset className={styles.group}>
-        <legend className={form.label}>Как печатаем</legend>
-        <div className={styles.methods}>
-          {METHODS.map((m) => (
-            <label key={m.id} className={`${styles.method} ${draft.method === m.id ? styles.picked : ""}`}>
-              <input type="radio" name="print-method" checked={draft.method === m.id} onChange={() => set("method", m.id)} />
-              <span className={styles.methodLabel}>{m.label}</span>
-              <span className={form.hint}>{m.text}</span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
-
-      {agent && (
-        <fieldset className={styles.group}>
-          <legend className={form.label}>Подключение принтера к компьютеру склада</legend>
-          <div className={styles.segmented} role="radiogroup">
-            {LINKS.map((l) => (
-              <button
-                key={l.id}
-                type="button"
-                role="radio"
-                aria-checked={draft.link === l.id}
-                className={draft.link === l.id ? styles.segActive : ""}
-                onClick={() => set("link", l.id)}
-              >
-                {l.label}
-              </button>
-            ))}
-          </div>
-          {draft.link === "usb" ? (
-            <label className={form.field}>
-              <span className={form.label}>Имя принтера в системе</span>
-              <input className={form.input} value={draft.name} onChange={(e) => set("name", e.target.value)} />
-              <span className={form.hint}>Как принтер называется в списке принтеров компьютера склада</span>
-            </label>
-          ) : (
-            <label className={form.field}>
-              <span className={form.label}>IP-адрес принтера</span>
-              <input
-                className={form.input}
-                value={draft.ip}
-                placeholder="192.168.1.50"
-                inputMode="decimal"
-                onChange={(e) => set("ip", e.target.value)}
-              />
-              <span className={form.hint}>Только если у принтера есть сетевой порт (версия с LAN). Порт печати — 9100</span>
-            </label>
+        <legend className={form.label}>Подключение</legend>
+        <div className={styles.linkRow}>
+          <span className={styles.linkText}>
+            <span className={styles.linkName}>{link.name ?? "Принтер не выбран"}</span>
+            <span className={form.hint}>{LINK_HINT[link.state]}</span>
+          </span>
+          {link.state !== "unsupported" && (
+            <Button variant="secondary" onClick={pair}>
+              {link.state === "notPaired" ? "Подключить принтер" : "Выбрать другой"}
+            </Button>
           )}
-        </fieldset>
-      )}
+        </div>
+        {pairError && <p className={styles.error}>{pairError}</p>}
+      </fieldset>
 
       <fieldset className={styles.group}>
         <legend className={form.label}>Бирка</legend>
@@ -143,14 +145,14 @@ export function PrinterForm({ saved }: { saved: PrinterSettings }) {
             {numberField("labelHeight", "Высота", "мм")}
             {numberField("gap", "Зазор", "мм")}
           </div>
-          <div className={styles.preview} aria-hidden>
-            <div
-              className={styles.sticker}
-              style={{ aspectRatio: `${draft.labelWidth || 1} / ${draft.labelHeight || 1}` }}
-            >
-              {draft.labelWidth || "?"} × {draft.labelHeight || "?"}
-            </div>
-          </div>
+          <figure className={styles.preview}>
+            {preview && sizeOk ? (
+              <img className={styles.sticker} src={preview} alt="Превью бирки: так она выйдет на бумаге" />
+            ) : (
+              <span className={styles.noPreview}>Размер вне границ</span>
+            )}
+            <figcaption className={form.hint}>Так выйдет на бумаге (пример заказа)</figcaption>
+          </figure>
         </div>
       </fieldset>
 
@@ -160,17 +162,32 @@ export function PrinterForm({ saved }: { saved: PrinterSettings }) {
           {numberField("density", "Плотность", "")}
           {numberField("speed", "Скорость", "дюйм/с")}
         </div>
-        <span className={form.hint}>
-          {agent
-            ? "Бледно — прибавь плотность, штрихкод смазывается — убавь скорость."
-            : "При печати через браузер плотность и скорость задаются в драйвере принтера."}
-        </span>
+        <label className={styles.check}>
+          <input type="checkbox" checked={draft.flip} onChange={(e) => set("flip", e.target.checked)} />
+          Перевернуть бирку — если выходит вверх ногами
+        </label>
+        <span className={form.hint}>Бледно — прибавь плотность, QR смазывается — убавь скорость.</span>
       </fieldset>
+
+      {test.kind !== "idle" && (
+        <p className={test.kind === "error" ? styles.error : styles.testNote} role="status">
+          {test.kind === "sending" && "Отправляем бирку…"}
+          {test.kind === "sent" &&
+            `Отправлено в ${test.at.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}. Не вышла — проверь ленту и крышку.`}
+          {test.kind === "error" && test.text}
+        </p>
+      )}
 
       <div className={form.footer}>
         <span className={form.saved}>{formatSavedAt(saved.savedAt)}</span>
         <div className={form.actions}>
-          <Button variant="secondary" className={form.onCard} disabled title="Появится, когда подключим принтер">
+          <Button
+            variant="secondary"
+            className={form.onCard}
+            disabled={link.state !== "ready" || bad.length > 0 || test.kind === "sending"}
+            title={link.state === "ready" ? "Одна бирка-пример с текущими значениями, даже несохранёнными" : "Сначала подключи принтер"}
+            onClick={testPrint}
+          >
             Пробная печать
           </Button>
           {changed ? (

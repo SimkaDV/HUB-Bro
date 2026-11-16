@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { PageHeader } from "@/shared/ui";
-import { CONNECTIONS, PRINTER_MODEL, useConnections } from "./connections";
+import { PRINTER_MODEL, usePrinterLink, usePrinterSettings, type PrinterLinkState } from "@/shared/printer";
+import { PageHeader, type StatusTone } from "@/shared/ui";
+import { CONNECTIONS, useConnections } from "./connections";
 import { ConnectionForm, connectionStatus } from "./ConnectionForm/ConnectionForm";
 import { PrinterForm } from "./PrinterForm/PrinterForm";
 import { SettingsSection } from "./SettingsSection/SettingsSection";
@@ -8,9 +9,18 @@ import styles from "./SettingsPage.module.css";
 
 type SectionId = "avito" | "telegram" | "printer" | "auth";
 
+const PRINTER_STATUS: Record<PrinterLinkState, { tone: StatusTone; label: string }> = {
+  unsupported: { tone: "danger", label: "Нужен Chrome" },
+  notPaired: { tone: "neutral", label: "Не подключён" },
+  notFound: { tone: "warning", label: "Не найден" },
+  ready: { tone: "success", label: "Подключён" },
+};
+
 // Настройки кабинета: раскрывающиеся разделы. Описание — docs/SETTINGS.md.
 export default function SettingsPage() {
   const connections = useConnections();
+  const printer = usePrinterSettings();
+  const printerLink = usePrinterLink();
   const [open, setOpen] = useState<Set<SectionId>>(new Set());
 
   const toggle = (id: SectionId) =>
@@ -47,10 +57,10 @@ export default function SettingsPage() {
         <SettingsSection
           title="Принтер"
           description={`${PRINTER_MODEL} на складе: печать бирок с пульта.`}
-          status={{ tone: "neutral", label: "Не подключён" }}
+          status={PRINTER_STATUS[printerLink.state]}
           {...sectionProps("printer")}
         >
-          <PrinterForm saved={connections.printer} />
+          <PrinterForm saved={printer} />
         </SettingsSection>
 
         <SettingsSection

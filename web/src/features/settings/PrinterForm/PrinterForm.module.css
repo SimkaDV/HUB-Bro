@@ -23,57 +23,47 @@
   padding: 0;
 }
 
-.methods {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-2);
+.linkRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-button);
+  background: var(--bg);
 }
 
-.method {
-  position: relative;
+.linkText {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: var(--space-1);
+  min-width: 0;
+}
+
+.linkName { font-weight: 600; }
+
+.error {
   padding: var(--space-3) var(--space-4);
-  border: 2px solid transparent;
   border-radius: var(--radius-button);
-  background: var(--bg);
-  cursor: pointer;
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  font-size: 14px;
 }
 
-.method input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
+.testNote {
+  font-size: 14px;
+  color: var(--text-secondary);
 }
 
-.method:has(input:focus-visible) { outline: 2px solid var(--text); outline-offset: 2px; }
-
-.picked { border-color: var(--text); }
-
-.methodLabel { font-weight: 600; }
-
-.segmented {
+.check {
   display: flex;
-  align-self: flex-start;
-  gap: var(--space-1);
-  padding: var(--space-1);
-  border-radius: var(--radius-button);
-  background: var(--bg);
-}
-
-.segmented button {
-  height: 36px;
-  padding: 0 var(--space-4);
-  border: none;
-  border-radius: 9px;
-  background: none;
-  color: var(--text);
-  font: inherit;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 14px;
   cursor: pointer;
 }
 
-.segmented .segActive { background: var(--button); color: var(--on-button); }
+.check input { width: 18px; height: 18px; accent-color: var(--button); }
 
 .labelRow {
   display: flex;
@@ -106,32 +96,40 @@
 .bad { border-color: var(--danger-text); }
 .badHint { color: var(--danger-text); }
 
-/* Бирка в масштабе: показывает пропорции, а не реальный размер. */
+/* Превью — та же чёрно-белая картинка, что уйдёт на принтер. */
 .preview {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  width: 140px;
-  height: 100px;
+  gap: var(--space-2);
+  width: 240px;
   flex-shrink: 0;
+  margin: 0;
 }
 
 .sticker {
+  display: block;
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 6px;
+  background: var(--paper);
+  image-rendering: pixelated;
+}
+
+.noPreview {
   display: flex;
   align-items: center;
   justify-content: center;
-  max-width: 100%;
-  max-height: 100%;
   width: 100%;
+  height: 150px;
   border-radius: 6px;
   background: var(--paper);
-  color: var(--text);
+  color: var(--danger-text);
   font-size: 13px;
-  font-weight: 500;
 }
 
 @media (max-width: 720px) {
-  .methods { grid-template-columns: 1fr; }
+  .linkRow { flex-direction: column; align-items: stretch; }
   .labelRow { flex-direction: column; align-items: stretch; }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .preview { align-self: center; }
