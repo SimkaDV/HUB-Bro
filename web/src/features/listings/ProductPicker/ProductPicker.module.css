@@ -1,0 +1,105 @@
+.picker {
+  position: relative;
+  min-width: 0;
+}
+
+.input {
+  width: 100%;
+  height: var(--control-height);
+  padding: 0 40px 0 var(--space-3);
+  border: 2px solid transparent;
+  border-radius: var(--radius-button);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.input::placeholder { color: var(--text-secondary); font-weight: 400; }
+.input:hover { border-color: var(--text-secondary); }
+.open .input,
+.input:focus { outline: none; border-color: var(--text); cursor: text; }
+
+/* Товар не выбран — подсвечиваем, как «Внимание». */
+.empty .input { background: var(--warning-bg); color: var(--warning-text); }
+.empty .input::placeholder { color: var(--warning-text); font-weight: 500; }
+.empty.open .input { background: var(--bg); }
+.empty.open .input::placeholder { color: var(--text-secondary); font-weight: 400; }
+
+.chevron {
+  position: absolute;
+  top: 50%;
+  right: var(--space-3);
+  translate: 0 -50%;
+  color: var(--text);
+  pointer-events: none;
+  transition: rotate 0.15s;
+}
+
+.empty .chevron { color: var(--warning-text); }
+.open .chevron { rotate: 180deg; color: var(--text); }
+
+/* Список — чёрный, как кнопки и чипы склада: сразу видно, что он поверх карточек. */
+.list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 280px;
+  margin: 0;
+  padding: var(--space-1);
+  overflow-y: auto;
+  border-radius: var(--radius-button);
+  background: var(--button);
+  color: var(--on-button);
+  list-style: none;
+  animation: appear 0.14s ease-out;
+}
+
+.group {
+  display: block;
+  padding: var(--space-2) var(--space-3) var(--space-1);
+  font-size: 12px;
+  color: var(--stock-zero);
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.active { background: rgba(255, 255, 255, 0.14); }
+
+.option[aria-selected="true"] { font-weight: 600; }
+
+.unlink {
+  margin-top: var(--space-1);
+  color: var(--stock-low);
+}
+
+.nothing {
+  padding: var(--space-3);
+  font-size: 14px;
+  color: var(--stock-zero);
+}
+
+@keyframes appear {
+  from { opacity: 0; translate: 0 -4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .list { animation: none; }
+  .chevron, .input { transition: none; }
+}

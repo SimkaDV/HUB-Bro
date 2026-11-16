@@ -1,8 +1,8 @@
 // Подключения к внешним сервисам: ключи Авито и Telegram-бот. Принтер — shared/printer. Описание — docs/SETTINGS.md.
-// Пока бэкенда нет, значения лежат в браузере (localStorage). Перед запуском переезжают на сервер.
-import { createStore } from "@/shared/lib/store";
+// Поля и форма — здесь, сами значения — в shared/connections (их читают и другие разделы: объявления берут ключи Авито).
+import { connectionsStore, type ConnectionId, type ConnectionValues } from "@/shared/connections";
 
-export type ConnectionId = "avito" | "telegram";
+export { useConnections, type ConnectionId, type ConnectionValues, type SavedConnection } from "@/shared/connections";
 
 export type FieldDef = {
   key: string;
@@ -74,23 +74,6 @@ export const CONNECTIONS: ConnectionDef[] = [
     ],
   },
 ];
-
-export type ConnectionValues = Record<string, string>;
-
-export type SavedConnection = {
-  values: ConnectionValues;
-  savedAt?: string;
-};
-
-type ConnectionsState = Record<ConnectionId, SavedConnection>;
-
-const STORAGE_KEY = "hubbro.connections.v1";
-
-const empty = (): ConnectionsState => ({ avito: { values: {} }, telegram: { values: {} } });
-
-export const connectionsStore = createStore<ConnectionsState>(STORAGE_KEY, empty);
-
-export const useConnections = connectionsStore.use;
 
 export function saveConnection(id: ConnectionId, values: ConnectionValues) {
   const trimmed = Object.fromEntries(Object.entries(values).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v));

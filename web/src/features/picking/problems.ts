@@ -5,6 +5,7 @@ import type { Model } from "@/shared/stock";
 
 export function problemHint(o: Order, models: Model[]): string {
   const model = models.find((m) => m.name === o.product);
+  if (!model && o.itemId) return "Объявление не привязано к товару склада —";
   if (!model) return `Модели «${o.product}» нет на складе — заведите её в настройках склада`;
   if (o.problem === "noSize") return "Выберите размер из чата с покупателем";
   const units = model.sizes.find((s) => s.size === o.size)?.units ?? [];

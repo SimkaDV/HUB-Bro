@@ -50,7 +50,17 @@ export function ProblemList({ orders, models, open, onToggle }: Props) {
                     </>
                   )}
                 </span>
-                <span className={styles.hint}>→ {problemHint(o, models)}</span>
+                <span className={styles.hint}>
+                  → {problemHint(o, models)}
+                  {o.problem === "noModel" && o.itemId && (
+                    <>
+                      {" "}
+                      <Link className={styles.chat} to={`/listings?q=${o.itemId}`}>
+                        выбрать товар →
+                      </Link>
+                    </>
+                  )}
+                </span>
                 {o.problem === "noSize" && <SizePicker order={o} models={models} />}
               </div>
               {o.problem && <StatusBadge tone="danger">⚠ {PROBLEM_LABEL[o.problem]}</StatusBadge>}

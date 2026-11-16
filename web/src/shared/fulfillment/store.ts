@@ -1,7 +1,9 @@
 import { newId } from "@/shared/lib/id";
 import { createStore } from "@/shared/lib/store";
+import { listingsStore } from "@/shared/listings";
 import { ordersStore } from "@/shared/orders";
 import { stockStore } from "@/shared/stock";
+import { syncProducts } from "./products";
 import { syncReserves } from "./reserve";
 import type { BatchIssue, PrintBatch } from "./types";
 
@@ -15,26 +17,31 @@ export const useBatches = batchesStore.use;
 
 let syncing = false;
 
-/** Сверяет заказы со складом: резервы, снятие резервов, пометки проблем. Повторный вызов ничего не меняет. */
+/**
+ * Сверяет заказы со складом: сначала товар по привязке объявления, потом резервы, снятие резервов, пометки проблем.
+ * Повторный вызов ничего не меняет.
+ */
 function sync() {
   if (syncing) return;
   syncing = true;
   try {
-    const result = syncReserves(ordersStore.get(), stockStore.get().models);
-    if (result) {
-      stockStore.set((s) => (s.models === result.models ? s : { ...s, models: result.models }));
-      ordersStore.set(() => result.orders);
-    }
+    const models = stockStore.get().models;
+    const withProducts = syncProducts(ordersStore.get(), listingsStore.get().listings, models);
+    const orders = withProducts ?? ordersStore.get();
+    const result = syncReserves(orders, models);
+    if (result) stockStore.set((s) => (s.models === result.models ? s : { ...s, models: result.models }));
+    if (result || withProducts) ordersStore.set(() => result?.orders ?? orders);
   } finally {
     syncing = false;
   }
 }
 
-/** Запускается один раз при старте: сверка сразу и после каждого изменения заказов или склада. */
+/** Запускается один раз при старте: сверка сразу и после каждого изменения заказов, склада или привязок объявлений. */
 export function startReserveSync() {
   sync();
   ordersStore.subscribe(sync);
   stockStore.subscribe(sync);
+  listingsStore.subscribe(sync);
 }
 
 /** Комплектация: отправить заказы на пульт одной партией. */

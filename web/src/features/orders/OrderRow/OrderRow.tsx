@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   chatUrl,
   formatDispatch,
@@ -60,7 +61,8 @@ export function OrderRow({ order, model, inBatch, open, onToggle }: Props) {
           <dl className={styles.fields}>
             <Field label="Номер Авито" value={number} />
             <Field label="Заказан" value={formatDateTime(order.createdAt)} />
-            <Field label="Товар" value={order.product} />
+            <Field label="Товар" value={order.problem === "noModel" ? "Не выбран" : order.product} />
+            {order.itemTitle && <Field label="Объявление" value={order.itemTitle} />}
             <Field label="Размер" value={order.size ?? "Нет — выберите ниже"} />
             <Field label="Служба доставки" value={SERVICE_LABEL[order.service]} />
             {order.dispatchNumber && <Field label="Номер отправления" value={formatDispatch(order.dispatchNumber)} />}
@@ -109,6 +111,15 @@ function SizeEditor({ order, model, inBatch }: { order: Order; model?: Model; in
   const original = order.manualSize?.original;
   let body;
   if (inBatch) body = <p className={styles.sizeNote}>Заказ в партии на пульте — верните партию в очередь, чтобы поменять размер</p>;
+  else if (!model && order.itemId)
+    body = (
+      <p className={styles.sizeNote}>
+        Объявление не привязано к товару склада —{" "}
+        <Link className={styles.noteLink} to={`/listings?q=${order.itemId}`}>
+          выбрать товар в «Объявлениях» →
+        </Link>
+      </p>
+    );
   else if (!model) body = <p className={styles.sizeNote}>Модели «{order.product}» нет на складе</p>;
   else
     body = (

@@ -81,6 +81,7 @@ function avitoFields(a: AvitoOrder) {
     dispatchNumber: a.dispatchNumber ?? a.trackingNumber,
     shipBy: parseShipBy(a.shipBy ?? (a.status === "confirmed" ? a.info : undefined), a.createdAt),
     itemId: item?.itemId,
+    itemTitle: item?.title ?? a.title,
     chatId: a.chatId,
     payout: a.payout,
     price: item?.price,
@@ -129,6 +130,7 @@ export function mergeAvitoBatch(orders: Order[], batch: AvitoBatch, now = new Da
       const fresh: Order = {
         id: a.orderId,
         createdAt: a.createdAt,
+        // Пока название объявления; модель склада по привязке поставит сверка (shared/fulfillment/products.ts).
         product: item?.title ?? a.title ?? "Товар Авито",
         service,
         ...fields,
@@ -148,6 +150,7 @@ export function mergeAvitoBatch(orders: Order[], batch: AvitoBatch, now = new Da
         dispatchNumber: fields.dispatchNumber ?? old.dispatchNumber,
         shipBy: fields.shipBy ?? old.shipBy,
         itemId: fields.itemId ?? old.itemId,
+        itemTitle: fields.itemTitle ?? old.itemTitle,
         chatId: fields.chatId ?? old.chatId,
         payout: fields.payout ?? old.payout,
         price: fields.price ?? old.price,

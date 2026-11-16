@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Collapse, Input } from "@/shared/ui";
+import { ModelListings } from "../ModelListings/ModelListings";
 import { SizeListEditor } from "../SizeListEditor/SizeListEditor";
 import { ThresholdEditor } from "../ThresholdEditor/ThresholdEditor";
 import {
@@ -10,6 +11,7 @@ import {
   nameTaken,
   resolveThresholds,
 } from "../settings";
+import { listingsCount, unlinkModel, useListings } from "@/shared/listings";
 import { compareSizes, onHand } from "@/shared/stock";
 import type { ChangeSettings } from "../store";
 import type { Category, Model } from "@/shared/stock";
@@ -32,6 +34,7 @@ export function ModelSettingsCard({ model, models, categories, change }: Props) 
   const category = categories.find((c) => c.name === model.category);
   const thresholds = resolveThresholds(model, categories);
   const totalOnHand = model.sizes.reduce((s, x) => s + onHand(x), 0);
+  const listings = useListings().listings.filter((l) => l.modelId === model.id).length;
   const nameProblem = !name.trim()
     ? "Впишите название"
     : name.trim() !== model.name && nameTaken(name, models.map((m) => m.name))
@@ -57,7 +60,7 @@ export function ModelSettingsCard({ model, models, categories, change }: Props) 
         <span className={styles.meta}>
           {model.category} · {model.sizes.length - (model.hiddenSizes?.length ?? 0)} разм. · {totalOnHand} шт. ·
           пороги {formatThresholds(thresholds)}
-          {model.thresholds ? " (свои)" : ""}
+          {model.thresholds ? " (свои)" : ""} · {listingsCount(listings)}
         </span>
         <svg className={`${styles.chevron} ${open ? styles.up : ""}`} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M5 9l7 7 7-7" />
@@ -186,6 +189,11 @@ export function ModelSettingsCard({ model, models, categories, change }: Props) 
           />
         </section>
 
+        <section className={styles.section}>
+          <h4>Объявления на Авито{listings > 0 ? ` (${listings})` : ""}</h4>
+          <ModelListings model={model} change={change} />
+        </section>
+
         <div className={styles.actions}>
           {model.archived ? (
             <button
@@ -211,9 +219,10 @@ export function ModelSettingsCard({ model, models, categories, change }: Props) 
                 <button
                   type="button"
                   className={styles.danger}
-                  onClick={() =>
-                    change(`Модель «${model.name}» удалена`, (s) => ({ models: s.models.filter((m) => m.id !== model.id) }))
-                  }
+                  onClick={() => {
+                    unlinkModel(model.id);
+                    change(`Модель «${model.name}» удалена`, (s) => ({ models: s.models.filter((m) => m.id !== model.id) }));
+                  }}
                 >
                   Да, удалить
                 </button>

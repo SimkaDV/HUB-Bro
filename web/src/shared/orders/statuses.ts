@@ -16,6 +16,7 @@ export const STATUS_META: Record<OrderStatus, { label: string; tone: StatusTone 
 };
 
 export const PROBLEM_LABEL: Record<OrderProblem, string> = {
+  noModel: "Товар не выбран",
   noSize: "Без размера",
   noStock: "Нет на складе",
 };
