@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { formatOrderId } from "@/shared/orders";
+import { formatOrderId, SERVICE_LABEL } from "@/shared/orders";
 import { formatTime, isToday } from "@/shared/fulfillment";
 import type { QueueGroup } from "../queue";
 import styles from "./QueueGroupCard.module.css";
@@ -45,7 +45,7 @@ export function QueueGroupCard({ group, selected, onSelect, onSend }: Props) {
               <span className={styles.main}>
                 <span className={styles.product}>{o.product}</span>
                 <span className={styles.meta}>
-                  №&nbsp;{formatOrderId(o.id)} · {when(o.createdAt)} · {o.pickupPoint}
+                  №&nbsp;{formatOrderId(o.id)} · {when(o.createdAt)} · {SERVICE_LABEL[o.service]}
                 </span>
               </span>
             </label>

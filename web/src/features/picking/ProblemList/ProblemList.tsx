@@ -1,6 +1,6 @@
-import { formatOrderId, PROBLEM_LABEL, type Order } from "@/shared/orders";
-import type { Model } from "@/shared/stock";
-import { Collapse, StatusBadge } from "@/shared/ui";
+import { chatUrl, formatOrderId, PROBLEM_LABEL, SERVICE_LABEL, setOrderSize, type Order } from "@/shared/orders";
+import { visibleSizes, type Model } from "@/shared/stock";
+import { Collapse, FilterChip, StatusBadge } from "@/shared/ui";
 import { problemHint } from "../problems";
 import styles from "./ProblemList.module.css";
 
@@ -35,9 +35,18 @@ export function ProblemList({ orders, models, open, onToggle }: Props) {
                   {o.size && <span className={styles.size}>{o.size}</span>}
                 </span>
                 <span className={styles.meta}>
-                  №&nbsp;{formatOrderId(o.id)} · {o.pickupPoint}
+                  №&nbsp;{formatOrderId(o.id)} · {SERVICE_LABEL[o.service]}
+                  {o.chatId && (
+                    <>
+                      {" · "}
+                      <a className={styles.chat} href={chatUrl(o.chatId)} target="_blank" rel="noreferrer">
+                        чат ↗
+                      </a>
+                    </>
+                  )}
                 </span>
                 <span className={styles.hint}>→ {problemHint(o, models)}</span>
+                {o.problem === "noSize" && <SizePicker order={o} models={models} />}
               </div>
               {o.problem && <StatusBadge tone="danger">⚠ {PROBLEM_LABEL[o.problem]}</StatusBadge>}
             </li>
@@ -45,5 +54,24 @@ export function ProblemList({ orders, models, open, onToggle }: Props) {
         </ul>
       </Collapse>
     </section>
+  );
+}
+
+/** Размер руками, пока нет бота Гришки: размеры модели со склада, рядом — сколько на полке. */
+function SizePicker({ order, models }: { order: Order; models: Model[] }) {
+  const model = models.find((m) => m.name === order.product);
+  if (!model) return null;
+  return (
+    <div className={styles.sizes}>
+      {visibleSizes(model).map((s) => (
+        <FilterChip
+          key={s.size}
+          label={s.size}
+          count={s.stock.reduce((sum, b) => sum + b.qty, 0)}
+          selected={false}
+          onClick={() => setOrderSize(order.id, s.size)}
+        />
+      ))}
+    </div>
   );
 }

@@ -77,6 +77,15 @@
 
 .hint { font-size: 14px; color: var(--danger-text); font-weight: 500; }
 
+.chat { color: inherit; }
+
+.sizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
 @media (max-width: 640px) {
   .row { flex-direction: column; align-items: flex-start; }
 }

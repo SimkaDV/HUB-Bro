@@ -1,4 +1,4 @@
-import { PROBLEM_LABEL, STATUS_META, type Order } from "@/shared/orders";
+import { chatUrl, formatDispatch, formatShipBy, PROBLEM_LABEL, SERVICE_LABEL, STATUS_META, type Order } from "@/shared/orders";
 import { Collapse, StatusBadge } from "@/shared/ui";
 import { formatDateTime, formatOrderId, formatTime } from "../filter";
 import styles from "./OrderRow.module.css";
@@ -22,23 +22,33 @@ export function OrderRow({ order, open, onToggle }: Props) {
             {order.size && <span className={styles.size}>{order.size}</span>}
           </span>
           <span className={styles.meta}>
-            №&nbsp;{number} · {formatTime(order.createdAt)} · {order.pickupPoint}
+            №&nbsp;{number} · {formatTime(order.createdAt)} · {SERVICE_LABEL[order.service]}
           </span>
         </span>
         <span className={styles.badges}>
           <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
           {order.problem && <StatusBadge tone="danger">⚠ {PROBLEM_LABEL[order.problem]}</StatusBadge>}
+          {order.disputed && <StatusBadge tone="danger">Спорный</StatusBadge>}
         </span>
       </button>
 
       <Collapse open={open} className={styles.details}>
-        <dl className={styles.fields}>
-          <Field label="Номер Авито" value={number} />
-          <Field label="Заказан" value={formatDateTime(order.createdAt)} />
-          <Field label="Товар" value={order.product} />
-          <Field label="Размер" value={order.size ?? "Ждём от бота"} />
-          <Field label="Пункт выдачи" value={order.pickupPoint} />
-        </dl>
+        <div>
+          <dl className={styles.fields}>
+            <Field label="Номер Авито" value={number} />
+            <Field label="Заказан" value={formatDateTime(order.createdAt)} />
+            <Field label="Товар" value={order.product} />
+            <Field label="Размер" value={order.size ?? "Нет — укажите в комплектации"} />
+            <Field label="Служба доставки" value={SERVICE_LABEL[order.service]} />
+            {order.dispatchNumber && <Field label="Номер отправления" value={formatDispatch(order.dispatchNumber)} />}
+            {order.shipBy && <Field label="Отгрузить до" value={formatShipBy(order.shipBy)} />}
+          </dl>
+          {order.chatId && (
+            <a className={styles.chat} href={chatUrl(order.chatId)} target="_blank" rel="noreferrer">
+              Чат с покупателем ↗
+            </a>
+          )}
+        </div>
 
         <div>
           <h3 className={styles.historyTitle}>История</h3>

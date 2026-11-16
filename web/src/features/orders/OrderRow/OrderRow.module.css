@@ -81,6 +81,14 @@
   margin: 2px 0 0;
 }
 
+.chat {
+  display: inline-block;
+  margin-top: var(--space-4);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+}
+
 .historyTitle {
   margin-bottom: var(--space-3);
   color: var(--text-secondary);
