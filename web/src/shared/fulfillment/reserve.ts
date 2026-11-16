@@ -14,7 +14,7 @@ const dayMonth = (iso: string) => {
  *   Нет джинсы → пометка «Нет на складе» (только у «Заказан»).
  * - Заказан без размера → «Без размера».
  * - Отменён с резервом → резерв снят, джинса на полку своей поставки (+1).
- * - Поменяли размер у заказа с резервом → старый резерв снят (+1), дальше как обычно.
+ * - Поменяли или убрали размер у заказа с резервом → старый резерв снят (+1), дальше как обычно.
  * Заказы обходим от старых к новым: кто раньше заказал, тому и джинса.
  */
 export function syncReserves(orders: Order[], models: Model[]): { orders: Order[]; models: Model[] } | null {
@@ -60,7 +60,7 @@ export function syncReserves(orders: Order[], models: Model[]): { orders: Order[
       continue;
     }
     if (o.status !== "ordered" && o.status !== "packed") continue;
-    if (o.size) release(o, o.size);
+    release(o, o.size);
     if (!o.size) {
       problems.set(o.id, o.status === "ordered" ? "noSize" : undefined);
       continue;

@@ -1,5 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { chatUrl, formatDispatch, formatShipBy, PROBLEM_LABEL, SERVICE_LABEL, setOrderSize, STATUS_META, type Order } from "@/shared/orders";
+import {
+  chatUrl,
+  formatDispatch,
+  formatShipBy,
+  PROBLEM_LABEL,
+  resetOrderSize,
+  SERVICE_LABEL,
+  setOrderSize,
+  STATUS_META,
+  type Order,
+} from "@/shared/orders";
 import { visibleSizes, type Model } from "@/shared/stock";
 import { Button, Collapse, FilterChip, StatusBadge } from "@/shared/ui";
 import { formatDateTime, formatOrderId, formatTime } from "../filter";
@@ -90,7 +100,10 @@ function Field({ label, value }: { label: string; value: string }) {
 
 /** Размер руками, пока нет бота Гришки. Только у «Заказан» и не в партии на пульте. Клик выбирает, кнопка сохраняет. */
 function SizeEditor({ order, model, inBatch }: { order: Order; model?: Model; inBatch: boolean }) {
+  // Выбранный размер или «вернуть исходный» — ждёт подтверждения.
   const [picked, setPicked] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const original = order.manualSize?.original;
   let body;
   if (inBatch) body = <p className={styles.sizeNote}>Заказ в партии на пульте — верните партию в очередь, чтобы поменять размер</p>;
   else if (!model) body = <p className={styles.sizeNote}>Модели «{order.product}» нет на складе</p>;
@@ -103,7 +116,10 @@ function SizeEditor({ order, model, inBatch }: { order: Order; model?: Model; in
             label={s.size}
             count={s.stock.reduce((sum, b) => sum + b.qty, 0)}
             selected={(picked ?? order.size) === s.size}
-            onClick={() => setPicked(s.size === order.size ? null : s.size)}
+            onClick={() => {
+              setPicked(s.size === order.size ? null : s.size);
+              setResetting(false);
+            }}
           />
         ))}
       </div>
@@ -112,6 +128,26 @@ function SizeEditor({ order, model, inBatch }: { order: Order; model?: Model; in
     <div className={styles.sizeEditor}>
       <span className={styles.label}>{order.size ? "Поменять размер" : "Выбрать размер"} · рядом — сколько на полке</span>
       {body}
+      {order.manualSize && !inBatch && !picked && !resetting && (
+        <button type="button" className={styles.reset} onClick={() => setResetting(true)}>
+          ↺ Вернуть исходный размер{original ? ` (${original})` : " (не было)"}
+        </button>
+      )}
+      {resetting && (
+        <div className={styles.confirm}>
+          <Button
+            onClick={() => {
+              resetOrderSize(order.id);
+              setResetting(false);
+            }}
+          >
+            {original ? `Вернуть ${original}` : "Убрать размер"}
+          </Button>
+          <Button variant="secondary" onClick={() => setResetting(false)}>
+            Отмена
+          </Button>
+        </div>
+      )}
       {picked && (
         <div className={styles.confirm}>
           <Button

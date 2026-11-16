@@ -97,6 +97,18 @@
   margin-top: var(--space-3);
 }
 
+.reset {
+  margin-top: var(--space-3);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .sizeNote { margin: var(--space-2) 0 0; color: var(--text-secondary); font-size: 14px; }
 
 .chat {

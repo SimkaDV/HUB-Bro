@@ -31,5 +31,20 @@ export const useOrders = ordersStore.use;
  * не трогаем — это проверяет экран. Резерв (и снятие старого) дальше делает сверка.
  */
 export function setOrderSize(id: string, size: string) {
-  ordersStore.set((orders) => orders.map((o) => (o.id === id && o.status === "ordered" && o.size !== size ? { ...o, size } : o)));
+  ordersStore.set((orders) =>
+    orders.map((o) =>
+      o.id === id && o.status === "ordered" && o.size !== size ? { ...o, size, manualSize: o.manualSize ?? { original: o.size } } : o,
+    ),
+  );
+}
+
+/** Вернуть размер, который был до первой ручной правки; не было — заказ снова без размера. */
+export function resetOrderSize(id: string) {
+  ordersStore.set((orders) =>
+    orders.map((o) => {
+      if (o.id !== id || o.status !== "ordered" || !o.manualSize) return o;
+      const { manualSize, size: _, ...rest } = o;
+      return manualSize.original ? { ...rest, size: manualSize.original } : rest;
+    }),
+  );
 }
