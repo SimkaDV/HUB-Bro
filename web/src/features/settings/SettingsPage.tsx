@@ -1,13 +1,15 @@
 import { useState } from "react";
+import { useAvitoLink } from "@/shared/avito";
 import { PRINTER_MODEL, usePrinterLink, usePrinterSettings, type PrinterLinkState } from "@/shared/printer";
 import { PageHeader, type StatusTone } from "@/shared/ui";
+import { AvitoExtension } from "./AvitoExtension/AvitoExtension";
 import { CONNECTIONS, useConnections } from "./connections";
 import { ConnectionForm, connectionStatus } from "./ConnectionForm/ConnectionForm";
 import { PrinterForm } from "./PrinterForm/PrinterForm";
 import { SettingsSection } from "./SettingsSection/SettingsSection";
 import styles from "./SettingsPage.module.css";
 
-type SectionId = "avito" | "telegram" | "printer" | "auth";
+type SectionId = "avito" | "extension" | "telegram" | "printer" | "auth";
 
 const PRINTER_STATUS: Record<PrinterLinkState, { tone: StatusTone; label: string }> = {
   unsupported: { tone: "danger", label: "Нужен Chrome" },
@@ -21,6 +23,7 @@ export default function SettingsPage() {
   const connections = useConnections();
   const printer = usePrinterSettings();
   const printerLink = usePrinterLink();
+  const avitoLink = useAvitoLink();
   const [open, setOpen] = useState<Set<SectionId>>(new Set());
 
   const toggle = (id: SectionId) =>
@@ -53,6 +56,15 @@ export default function SettingsPage() {
             <ConnectionForm def={def} saved={connections[def.id]} />
           </SettingsSection>
         ))}
+
+        <SettingsSection
+          title="Расширение Авито"
+          description="Забирает заказы из кабинета Авито: номер, службу, статус, номер отправления."
+          status={avitoLink.version ? { tone: "success", label: "На связи" } : { tone: "neutral", label: "Не установлено" }}
+          {...sectionProps("extension")}
+        >
+          <AvitoExtension version={avitoLink.version} />
+        </SettingsSection>
 
         <SettingsSection
           title="Принтер"

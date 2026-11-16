@@ -1,17 +1,29 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { collectFromAvito, useAvitoLink } from "@/shared/avito";
+import { isActive, useBatches } from "@/shared/fulfillment";
 import { GROUPS, useOrders, type OrderGroup } from "@/shared/orders";
-import { Card, FilterChip, Input, PageHeader } from "@/shared/ui";
-import { groupByDay, inPeriod, matchesQuery, PERIODS, type DateRange, type Period } from "./filter";
+import { useStock } from "@/shared/stock";
+import { Button, Card, FilterChip, Input, PageHeader } from "@/shared/ui";
+import { AvitoSync } from "./AvitoSync/AvitoSync";
+import { formatDateTime, groupByDay, inPeriod, matchesQuery, PERIODS, type DateRange, type Period } from "./filter";
 import { OrderRow } from "./OrderRow/OrderRow";
 import styles from "./OrdersPage.module.css";
 
 export default function OrdersPage() {
   const orders = useOrders();
+  const avito = useAvitoLink();
+  const { models } = useStock();
+  const batches = useBatches();
+  // «К заказу» из комплектации: /orders?order=<номер> — ищем по номеру и сразу раскрываем.
+  const [params] = useSearchParams();
+  const linked = params.get("order");
   const [group, setGroup] = useState<OrderGroup>("active");
   const [period, setPeriod] = useState<Period>("all");
   const [range, setRange] = useState<DateRange>({ from: "", to: "" });
-  const [query, setQuery] = useState("");
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [query, setQuery] = useState(linked ?? "");
+  const [openId, setOpenId] = useState<string | null>(linked);
+  const inBatch = useMemo(() => new Set(batches.filter(isActive).flatMap((b) => b.orderIds)), [batches]);
 
   const searching = query.trim() !== "";
   const inRange = useMemo(() => orders.filter((o) => inPeriod(o, period, range)), [orders, period, range]);
@@ -24,23 +36,36 @@ export default function OrdersPage() {
   }, [orders, inRange, group, query, searching]);
 
   const days = groupByDay(visible);
+  const lastSync = orders.reduce<string | undefined>((max, o) => (o.syncedAt && (!max || o.syncedAt > max) ? o.syncedAt : max), undefined);
 
   return (
     <>
       <PageHeader
         title="Заказы"
-        subtitle="Тестовые данные, к Авито подключим позже"
+        subtitle={lastSync ? `Из Авито · сверено ${formatDateTime(lastSync)}` : "Тестовые данные — подтяните заказы из Авито"}
         actions={
-          <Input
-            type="search"
-            className={styles.search}
-            placeholder="Номер Авито или товар"
-            aria-label="Поиск заказа"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
+          <>
+            <Button
+              variant="secondary"
+              disabled={avito.collecting}
+              title={avito.version ? undefined : "Расширение не отвечает — Настройки → Расширение Авито"}
+              onClick={collectFromAvito}
+            >
+              {avito.collecting ? "Подтягиваю…" : "Подтянуть из Авито"}
+            </Button>
+            <Input
+              type="search"
+              className={styles.search}
+              placeholder="Номер Авито или товар"
+              aria-label="Поиск заказа"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </>
         }
       />
+
+      <AvitoSync />
 
       <div className={styles.filters}>
         <div className={styles.chips} role="group" aria-label="Статус">
@@ -93,6 +118,8 @@ export default function OrdersPage() {
                     <OrderRow
                       key={o.id}
                       order={o}
+                      model={models.find((m) => m.name === o.product)}
+                      inBatch={inBatch.has(o.id)}
                       open={openId === o.id}
                       onToggle={() => setOpenId(openId === o.id ? null : o.id)}
                     />

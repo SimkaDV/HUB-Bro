@@ -4,9 +4,9 @@ import type { Model } from "@/shared/stock";
 // Подсказка, как решить проблему заказа. Описание — docs/ORDERS.md, раздел 6.
 
 export function problemHint(o: Order, models: Model[]): string {
-  if (o.problem === "noSize") return "Ждём размер от бота Гришки";
   const model = models.find((m) => m.name === o.product);
   if (!model) return `Модели «${o.product}» нет на складе — заведите её в настройках склада`;
+  if (o.problem === "noSize") return "Выберите размер из чата с покупателем";
   const units = model.sizes.find((s) => s.size === o.size)?.units ?? [];
   const toCheck = units.find((u) => u.status === "returnStock");
   if (toCheck) return `Есть возврат на разбор: заказ №${toCheck.order} — разберите его на полку`;

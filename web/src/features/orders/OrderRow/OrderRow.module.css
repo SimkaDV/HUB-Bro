@@ -81,6 +81,62 @@
   margin: 2px 0 0;
 }
 
+.money { margin-top: var(--space-3); }
+
+.moneyRows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+}
+
+.moneyRows > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  max-width: 320px;
+}
+
+.moneyRows dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+.sizeEditor { margin-top: var(--space-4); }
+
+.sizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.confirm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.reset {
+  margin-top: var(--space-3);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.sizeNote { margin: var(--space-2) 0 0; color: var(--text-secondary); font-size: 14px; }
+
+.chat {
+  display: inline-block;
+  margin-top: var(--space-4);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+}
+
 .historyTitle {
   margin-bottom: var(--space-3);
   color: var(--text-secondary);
