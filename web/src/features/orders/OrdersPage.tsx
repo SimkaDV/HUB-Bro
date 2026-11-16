@@ -1,5 +1,8 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { isActive, useBatches } from "@/shared/fulfillment";
 import { GROUPS, useOrders, type OrderGroup } from "@/shared/orders";
+import { useStock } from "@/shared/stock";
 import { Card, FilterChip, Input, PageHeader } from "@/shared/ui";
 import { groupByDay, inPeriod, matchesQuery, PERIODS, type DateRange, type Period } from "./filter";
 import { OrderRow } from "./OrderRow/OrderRow";
@@ -7,11 +10,17 @@ import styles from "./OrdersPage.module.css";
 
 export default function OrdersPage() {
   const orders = useOrders();
+  const { models } = useStock();
+  const batches = useBatches();
+  // «К заказу» из комплектации: /orders?order=<номер> — ищем по номеру и сразу раскрываем.
+  const [params] = useSearchParams();
+  const linked = params.get("order");
   const [group, setGroup] = useState<OrderGroup>("active");
   const [period, setPeriod] = useState<Period>("all");
   const [range, setRange] = useState<DateRange>({ from: "", to: "" });
-  const [query, setQuery] = useState("");
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [query, setQuery] = useState(linked ?? "");
+  const [openId, setOpenId] = useState<string | null>(linked);
+  const inBatch = useMemo(() => new Set(batches.filter(isActive).flatMap((b) => b.orderIds)), [batches]);
 
   const searching = query.trim() !== "";
   const inRange = useMemo(() => orders.filter((o) => inPeriod(o, period, range)), [orders, period, range]);
@@ -93,6 +102,8 @@ export default function OrdersPage() {
                     <OrderRow
                       key={o.id}
                       order={o}
+                      model={models.find((m) => m.name === o.product)}
+                      inBatch={inBatch.has(o.id)}
                       open={openId === o.id}
                       onToggle={() => setOpenId(openId === o.id ? null : o.id)}
                     />

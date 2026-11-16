@@ -60,6 +60,10 @@ function order(id: string, product: string, size: string | null, price: number, 
 
 export const MOCK_ORDERS: Order[] = [
   // Сегодня
+  order("4812339455", PIPES, null, 3290, [["ordered", 0, "12:40"]]),
+  order("4812339318", FLARE, null, 3490, [["ordered", 0, "12:05"]]),
+  order("4812339207", PUFFER, null, 6900, [["ordered", 0, "11:48"]]),
+  order("4812339164", FLARE, null, 3490, [["ordered", 0, "11:31"]]),
   order("4812339102", FLARE, null, 3490, [["ordered", 0, "11:20"]]),
   order("4812338871", PIPES, "31M", 3290, [["ordered", 0, "10:05"]]),
   order("4812338540", FLARE, "34L", 3490, [["ordered", 0, "09:12"]]),

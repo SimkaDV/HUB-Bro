@@ -1,6 +1,8 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import { chatUrl, formatOrderId, PROBLEM_LABEL, SERVICE_LABEL, setOrderSize, type Order } from "@/shared/orders";
 import { visibleSizes, type Model } from "@/shared/stock";
-import { Collapse, FilterChip, StatusBadge } from "@/shared/ui";
+import { Button, Collapse, FilterChip, StatusBadge } from "@/shared/ui";
 import { problemHint } from "../problems";
 import styles from "./ProblemList.module.css";
 
@@ -35,7 +37,10 @@ export function ProblemList({ orders, models, open, onToggle }: Props) {
                   {o.size && <span className={styles.size}>{o.size}</span>}
                 </span>
                 <span className={styles.meta}>
-                  №&nbsp;{formatOrderId(o.id)} · {SERVICE_LABEL[o.service]}
+                  №&nbsp;{formatOrderId(o.id)} · {SERVICE_LABEL[o.service]} ·{" "}
+                  <Link className={styles.chat} to={`/orders?order=${o.id}`}>
+                    к заказу →
+                  </Link>
                   {o.chatId && (
                     <>
                       {" · "}
@@ -57,21 +62,32 @@ export function ProblemList({ orders, models, open, onToggle }: Props) {
   );
 }
 
-/** Размер руками, пока нет бота Гришки: размеры модели со склада, рядом — сколько на полке. */
+/** Размер руками, пока нет бота Гришки: размеры модели со склада, рядом — сколько на полке. Клик выбирает, кнопка сохраняет. */
 function SizePicker({ order, models }: { order: Order; models: Model[] }) {
+  const [picked, setPicked] = useState<string | null>(null);
   const model = models.find((m) => m.name === order.product);
   if (!model) return null;
   return (
-    <div className={styles.sizes}>
-      {visibleSizes(model).map((s) => (
-        <FilterChip
-          key={s.size}
-          label={s.size}
-          count={s.stock.reduce((sum, b) => sum + b.qty, 0)}
-          selected={false}
-          onClick={() => setOrderSize(order.id, s.size)}
-        />
-      ))}
-    </div>
+    <>
+      <div className={styles.sizes}>
+        {visibleSizes(model).map((s) => (
+          <FilterChip
+            key={s.size}
+            label={s.size}
+            count={s.stock.reduce((sum, b) => sum + b.qty, 0)}
+            selected={picked === s.size}
+            onClick={() => setPicked(picked === s.size ? null : s.size)}
+          />
+        ))}
+      </div>
+      {picked && (
+        <div className={styles.sizes}>
+          <Button onClick={() => setOrderSize(order.id, picked)}>Поставить {picked}</Button>
+          <Button variant="secondary" onClick={() => setPicked(null)}>
+            Отмена
+          </Button>
+        </div>
+      )}
+    </>
   );
 }

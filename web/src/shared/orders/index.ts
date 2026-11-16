@@ -20,13 +20,16 @@ export {
 export { AVITO_SERVICE, AVITO_STATUS, applyAvitoStatus, type AvitoStatusEffect } from "./avito";
 export type { DeliveryService, Order, OrderProblem, OrderStatus, StatusChange } from "./types";
 
-const STORAGE_KEY = "hubbro.orders.v1";
+const STORAGE_KEY = "hubbro.orders.v2";
 
 export const ordersStore = createStore<Order[]>(STORAGE_KEY, () => MOCK_ORDERS, (saved) => saved as Order[]);
 
 export const useOrders = ordersStore.use;
 
-/** Размер руками, пока нет бота Гришки (ORDERS.md, раздел 6). Резерв дальше ставит сверка. */
+/**
+ * Размер руками, пока нет бота Гришки (ORDERS.md, раздел 6). Только у «Заказан»; заказ в партии на пульте
+ * не трогаем — это проверяет экран. Резерв (и снятие старого) дальше делает сверка.
+ */
 export function setOrderSize(id: string, size: string) {
-  ordersStore.set((orders) => orders.map((o) => (o.id === id && o.status === "ordered" && !o.size ? { ...o, size } : o)));
+  ordersStore.set((orders) => orders.map((o) => (o.id === id && o.status === "ordered" && o.size !== size ? { ...o, size } : o)));
 }
