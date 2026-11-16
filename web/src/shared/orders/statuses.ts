@@ -20,11 +20,12 @@ export const PROBLEM_LABEL: Record<OrderProblem, string> = {
   noStock: "Нет на складе",
 };
 
-/** Службы доставки в порядке показа. Пока четыре, потом список будет приходить из Авито. */
+/** Службы доставки в порядке показа. */
 export const SERVICES: { id: DeliveryService; label: string }[] = [
   { id: "cdek", label: "СДЭК" },
   { id: "avito", label: "Авито" },
   { id: "post", label: "Почта" },
+  { id: "yandex", label: "Яндекс" },
   { id: "fivepost", label: "5Post" },
 ];
 
@@ -49,4 +50,26 @@ export const GROUPS: { id: OrderGroup; label: string; match: (o: Order) => boole
 /** 4812339102 → «4 812 339 102». */
 export function formatOrderId(id: string): string {
   return id.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+}
+
+/** Номер отправления группами, как в кабинете Авито: «805 122 273 33459», «513 347 6411». */
+export function formatDispatch(n: string): string {
+  const parts: string[] = [];
+  let rest = n;
+  while (rest.length > 5) {
+    parts.push(rest.slice(0, 3));
+    rest = rest.slice(3);
+  }
+  return [...parts, rest].join(" ");
+}
+
+/** «2026-11-19» → «19 ноября». */
+export function formatShipBy(date: string): string {
+  const [y, m, d] = date.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
+}
+
+/** Ссылка на чат с покупателем в кабинете Авито. */
+export function chatUrl(chatId: string): string {
+  return `https://www.avito.ru/profile/messenger/channel/${chatId}`;
 }

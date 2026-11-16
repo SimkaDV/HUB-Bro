@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "HUB BRO — заказы Авито",
+  "version": "0.1.0",
+  "description": "Собирает заказы из кабинета Авито и передаёт их в кабинет HUB BRO.",
+  "permissions": ["storage", "scripting", "tabs"],
+  "host_permissions": ["https://www.avito.ru/*", "https://m.avito.ru/*", "http://localhost:5173/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://www.avito.ru/orders*", "https://m.avito.ru/orders*"],
+      "js": ["avito/collect.js", "avito/button.js"]
+    },
+    {
+      "matches": ["http://localhost:5173/*"],
+      "js": ["hub.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "icons": { "128": "icon128.png" }
+}

@@ -1,75 +1,110 @@
-// Клиент API Авито. Описание — docs/LISTINGS.md, раздел «Откуда берём».
-// Браузер напрямую к api.avito.ru не пускает (CORS), поэтому запросы идут через прокси дев-сервера Vite:
-// /avito/... → https://api.avito.ru/... (web/vite.config.ts). С бэкендом запросы переедут на сервер.
-import { connectionsStore } from "@/shared/connections";
+import { useSyncExternalStore } from "react";
+import { removeTestOrders } from "@/shared/fulfillment";
+import { mergeAvitoBatch, ordersStore, parseAvitoBatch, type AvitoBatch, type ImportReport } from "@/shared/orders";
 
-const BASE = "/avito";
+// Связь с расширением «HUB BRO — заказы Авито» (папка extension/) и приём пачек заказов.
+// Нужна заказам и настройкам, поэтому в shared. Описание — docs/EXTENSION.md.
 
-export class AvitoError extends Error {}
+export type AvitoLink = {
+  /** Версия расширения; нет — расширение не отвечает (не установлено или выключено). */
+  version?: string;
+  collecting: boolean;
+  progress?: string;
+  error?: string;
+  /** Итог последнего приёма. */
+  last?: ImportReport & { at: string };
+};
 
-type Token = { value: string; expiresAt: number; clientId: string };
-let token: Token | null = null;
+let state: AvitoLink = { collecting: false };
+const listeners = new Set<() => void>();
+const set = (patch: Partial<AvitoLink>) => {
+  state = { ...state, ...patch };
+  listeners.forEach((l) => l());
+};
 
-function credentials() {
-  const v = connectionsStore.get().avito.values;
-  if (!v.clientId || !v.clientSecret) throw new AvitoError("Внесите Client ID и Client secret в «Настройки → Авито»");
-  return { clientId: v.clientId, clientSecret: v.clientSecret, userId: v.userId };
-}
-
-async function getToken(): Promise<string> {
-  const { clientId, clientSecret } = credentials();
-  if (token && token.clientId === clientId && token.expiresAt > Date.now() + 60_000) return token.value;
-  const res = await send(`${BASE}/token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ grant_type: "client_credentials", client_id: clientId, client_secret: clientSecret }),
-  });
-  const data = (await res.json().catch(() => ({}))) as { access_token?: string; expires_in?: number };
-  if (!data.access_token) throw new AvitoError("Авито не принял ключи — проверьте Client ID и Client secret");
-  token = { value: data.access_token, expiresAt: Date.now() + (data.expires_in ?? 3600) * 1000, clientId };
-  return token.value;
-}
-
-async function send(url: string, init: RequestInit): Promise<Response> {
-  let res: Response;
-  try {
-    res = await fetch(url, init);
-  } catch {
-    throw new AvitoError("Нет связи с Авито — проверьте интернет");
-  }
-  // Без прокси (сайт открыт не через дев-сервер) вместо JSON вернётся наша же страница.
-  if (res.status === 404 && !res.headers.get("content-type")?.includes("json")) {
-    throw new AvitoError("Запросы к Авито пока работают только на дев-сервере (npm run dev)");
-  }
-  return res;
-}
-
-/** Запрос к API Авито с токеном. Ответ — JSON. */
-export async function avitoRequest<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
-  const res = await send(`${BASE}${path}`, {
-    method: init.method ?? "GET",
-    headers: {
-      Authorization: `Bearer ${await getToken()}`,
-      ...(init.body ? { "Content-Type": "application/json" } : {}),
+export const useAvitoLink = () =>
+  useSyncExternalStore(
+    (l) => {
+      listeners.add(l);
+      return () => listeners.delete(l);
     },
-    body: init.body ? JSON.stringify(init.body) : undefined,
-  });
-  if (res.status === 401) {
-    token = null;
-    throw new AvitoError("Авито не принял ключи — проверьте Client ID и Client secret");
+    () => state,
+  );
+
+const toExt = (msg: Record<string, unknown>) => window.postMessage({ source: "hubbro-page", ...msg }, location.origin);
+
+let askedAboutTest = false;
+
+/** Принимает пачку: перед первыми живыми заказами предлагает убрать тестовые, потом сливает без дублей. */
+export function importAvitoBatch(batch: AvitoBatch): ImportReport {
+  if (!askedAboutTest && ordersStore.get().some((o) => !o.syncedAt)) {
+    askedAboutTest = true;
+    if (window.confirm("Пришли живые заказы из Авито. Убрать тестовые заказы и тестовые партии печати?")) removeTestOrders();
   }
-  if (res.status === 403) throw new AvitoError("У ключей нет доступа к этому разделу Авито");
-  if (res.status === 429) throw new AvitoError("Авито просит подождать — слишком много запросов, попробуйте через минуту");
-  if (!res.ok) throw new AvitoError(`Авито ответил ошибкой ${res.status}`);
-  return (await res.json()) as T;
+  let report!: ImportReport;
+  ordersStore.set((orders) => {
+    const merged = mergeAvitoBatch(orders, batch);
+    report = merged.report;
+    return merged.orders;
+  });
+  set({ last: { ...report, at: new Date().toISOString() }, collecting: false, progress: undefined, error: undefined });
+  return report;
 }
 
-let selfId: string | null = null;
+/** Вставка из буфера: текст, который скопировала кнопка «Скопировать» на странице Авито. */
+export function importAvitoText(text: string): ImportReport | string {
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return "Это не заказы из расширения — скопируйте ещё раз кнопкой «Скопировать» на странице Авито";
+  }
+  const batch = parseAvitoBatch(data);
+  if (!batch) return "Это не заказы из расширения — скопируйте ещё раз кнопкой «Скопировать» на странице Авито";
+  return importAvitoBatch(batch);
+}
 
-/** Номер профиля: из настроек, а если не вписан — спрашиваем у Авито. */
-export async function avitoUserId(): Promise<string> {
-  const { userId } = credentials();
-  if (userId) return userId;
-  if (!selfId) selfId = String((await avitoRequest<{ id: number }>("/core/v1/accounts/self")).id);
-  return selfId;
+/** Кнопка «Подтянуть из Авито»: расширение само сходит в кабинет Авито и пришлёт пачку. */
+export function collectFromAvito() {
+  if (!state.version) {
+    set({ error: "Расширение не отвечает — установите его (Настройки → Расширение Авито)" });
+    return;
+  }
+  set({ collecting: true, progress: "Открываю Авито…", error: undefined });
+  toExt({ type: "collect" });
+}
+
+/** Слушает расширение. Вызывается один раз при старте приложения. */
+export function startAvitoBridge() {
+  window.addEventListener("message", (e) => {
+    if (e.source !== window || e.origin !== location.origin || e.data?.source !== "hubbro-ext") return;
+    const msg = e.data;
+    if (msg.type === "ready") set({ version: msg.version }); else if (msg.type === "progress") set({ progress: msg.text });
+    else if (msg.type === "error") set({ collecting: false, progress: undefined, error: msg.message });
+    else if (msg.type === "batch") {
+      const batch = parseAvitoBatch(msg.batch);
+      if (batch) importAvitoBatch(batch);
+      toExt({ type: "ack", id: msg.id });
+    }
+  });
+  // В ответ расширение скажет «ready» и отдаст пачку, которая ждала, пока кабинет был закрыт.
+  toExt({ type: "hello" });
+}
+
+/** «BRO x BRO SHOP: 5 новых, 12 обновлено, 3 без изменений». */
+export function reportSummary(r: ImportReport): string {
+  return `${r.account}: ${r.added} новых, ${r.updated} обновлено, ${r.unchanged} без изменений`;
+}
+
+/** Что взяли не так, как обычно, — по строке на случай. */
+export function reportWarnings(r: ImportReport): string[] {
+  const list = (items: string[]) => (items.length > 3 ? `${items.slice(0, 3).join(", ")} и ещё ${items.length - 3}` : items.join(", "));
+  return [
+    r.skipped.length ? `Не взяли — служба, которой у нас нет: ${list(r.skipped)}` : "",
+    r.unknownStatus.length ? `Незнакомый статус Авито, статус не меняли: ${list(r.unknownStatus)}` : "",
+    r.multiItem.length ? `Несколько товаров в заказе (у нас одна джинса): ${list(r.multiItem)}` : "",
+    r.missingDetails
+      ? `Не дочитали карточки ${r.missingDetails} заказов (Авито не любит частые запросы) — подтяните ещё раз через пару минут`
+      : "",
+  ].filter(Boolean);
 }

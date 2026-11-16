@@ -98,7 +98,7 @@ export function BatchCard({ batch, orders }: Props) {
                     <span>{order?.product ?? "Заказ не найден"}</span>
                     <span className={styles.lineSecondary}>
                       №&nbsp;{formatOrderId(id)}
-                      {order && ` · ${order.pickupPoint}`}
+                      {order && ` · ${SERVICE_LABEL[order.service]}`}
                     </span>
                   </span>
                   {notOurs && <StatusBadge tone="neutral">{STATUS_META[order.status].label}</StatusBadge>}

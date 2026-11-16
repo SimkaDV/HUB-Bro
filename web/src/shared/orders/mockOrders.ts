@@ -1,12 +1,10 @@
-import { SERVICE_LABEL } from "./statuses";
 import type { DeliveryService, Order, OrderStatus, StatusChange } from "./types";
 
 // Тестовые заказы, пока API заказов Авито отвечает 403. Даты считаются от сегодняшнего дня,
 // чтобы фильтры «Сегодня» и «7 дней» всегда было на чём проверить.
 // Пометки проблем и резервы здесь не задаются: их ставит сверка со складом (shared/fulfillment).
 
-const SERVICES: DeliveryService[] = ["cdek", "avito", "post", "fivepost", "cdek", "avito", "avito"];
-const STREETS = ["Профсоюзная 56", "Ленинский 30", "Мира 112", "Тверская 18", "Арбат 9"];
+const SERVICES: DeliveryService[] = ["cdek", "avito", "post", "yandex", "fivepost", "cdek", "avito", "avito"];
 const BUYERS = ["Анна", "Илья", "Марина", "Денис", "Ольга", "Кирилл"];
 
 const FLARE = "Джинсы Клёш";
@@ -24,6 +22,23 @@ function at(daysAgo: number, time: string): string {
   return d.toISOString();
 }
 
+/** Номер отправления в формате службы: так его показывает кабинет Авито. */
+function dispatch(service: DeliveryService, id: string): string {
+  const tail = id.slice(-6);
+  if (service === "post") return `80512${tail}123`;
+  if (service === "cdek") return `10348${tail}`;
+  if (service === "yandex") return `P04${tail}537`;
+  if (service === "fivepost") return `P00${tail}305`;
+  return `5133${tail}`;
+}
+
+/** Срок отгрузки — три дня после заказа, YYYY-MM-DD. */
+function shipBy(createdAt: string): string {
+  const d = new Date(createdAt);
+  d.setDate(d.getDate() + 3);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function order(id: string, product: string, size: string | null, price: number, steps: Step[]): Order {
   const history: StatusChange[] = steps.map(([status, daysAgo, time]) => ({ status, at: at(daysAgo, time) }));
   const n = Number(id.slice(-3));
@@ -34,8 +49,11 @@ function order(id: string, product: string, size: string | null, price: number, 
     product,
     size: size ?? undefined,
     service,
-    pickupPoint: `${SERVICE_LABEL[service]} · ${STREETS[n % STREETS.length]}`,
+    dispatchNumber: dispatch(service, id),
+    shipBy: shipBy(history[0].at),
+    payout: Math.round(price * 0.92),
     price,
+    listPrice: price,
     buyer: BUYERS[n % BUYERS.length],
     status: history[history.length - 1].status,
     history,
@@ -44,6 +62,10 @@ function order(id: string, product: string, size: string | null, price: number, 
 
 export const MOCK_ORDERS: Order[] = [
   // Сегодня
+  order("4812339455", PIPES, null, 3290, [["ordered", 0, "12:40"]]),
+  order("4812339318", FLARE, null, 3490, [["ordered", 0, "12:05"]]),
+  order("4812339207", PUFFER, null, 6900, [["ordered", 0, "11:48"]]),
+  order("4812339164", FLARE, null, 3490, [["ordered", 0, "11:31"]]),
   order("4812339102", FLARE, null, 3490, [["ordered", 0, "11:20"]]),
   order("4812338871", PIPES, "31M", 3290, [["ordered", 0, "10:05"]]),
   order("4812338540", FLARE, "34L", 3490, [["ordered", 0, "09:12"]]),

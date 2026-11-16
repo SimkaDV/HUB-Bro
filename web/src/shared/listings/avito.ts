@@ -1,4 +1,4 @@
-import { avitoRequest, avitoUserId } from "@/shared/avito";
+import { avitoRequest, avitoUserId } from "@/shared/avito/api";
 import type { FetchedListing } from "./listings";
 import type { ListingStats, ListingStatus } from "./types";
 

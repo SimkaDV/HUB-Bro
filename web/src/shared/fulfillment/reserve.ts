@@ -14,6 +14,8 @@ const dayMonth = (iso: string) => {
  *   Нет джинсы → пометка «Нет на складе» (только у «Заказан»).
  * - Заказан без размера → «Без размера».
  * - Отменён с резервом → резерв снят, джинса на полку своей поставки (+1).
+ * - Остальные статусы → пометка проблемы снимается (бывает у заказа только в «Заказан»).
+ * - Поменяли или убрали размер у заказа с резервом → старый резерв снят (+1), дальше как обычно.
  * Заказы обходим от старых к новым: кто раньше заказал, тому и джинса.
  */
 export function syncReserves(orders: Order[], models: Model[]): { orders: Order[]; models: Model[] } | null {
@@ -35,21 +37,35 @@ export function syncReserves(orders: Order[], models: Model[]): { orders: Order[
   const problems = new Map<string, OrderProblem | undefined>();
   const byAge = [...orders].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 
-  for (const o of byAge) {
-    if (o.status === "cancelled") {
-      const size = findSize(nextModels, o);
-      const unit = size?.units.find((u) => u.order === o.id && u.status === "reserve");
-      if (unit) {
-        const s = findSize(editable(), o)!;
-        s.units = s.units.filter((u) => u.order !== o.id);
+  /** Снимает резерв заказа во всех размерах модели, кроме `keep`: джинса на полку своей поставки. */
+  const release = (o: Order, keep?: string) => {
+    const model = nextModels.find((m) => m.name === o.product);
+    const stale = model?.sizes.filter((s) => s.size !== keep && s.units.some((u) => u.order === o.id && u.status === "reserve"));
+    if (!stale?.length) return;
+    const m = editable().find((x) => x.name === o.product)!;
+    for (const { size } of stale) {
+      const s = m.sizes.find((x) => x.size === size)!;
+      for (const unit of s.units.filter((u) => u.order === o.id && u.status === "reserve")) {
         const row = s.stock.find((x) => x.batchId === unit.batchId);
         if (row) row.qty += 1;
         else s.stock.push({ batchId: unit.batchId, qty: 1 });
       }
+      s.units = s.units.filter((u) => !(u.order === o.id && u.status === "reserve"));
+    }
+  };
+
+  for (const o of byAge) {
+    if (o.status === "cancelled") {
+      release(o);
       problems.set(o.id, undefined);
       continue;
     }
-    if (o.status !== "ordered" && o.status !== "packed") continue;
+    if (o.status !== "ordered" && o.status !== "packed") {
+      // Заказ ушёл дальше (Авито прислал «Едет к покупателю») — пометка проблемы больше не нужна.
+      problems.set(o.id, undefined);
+      continue;
+    }
+    release(o, o.size);
     if (!o.size) {
       problems.set(o.id, o.status === "ordered" ? "noSize" : undefined);
       continue;
