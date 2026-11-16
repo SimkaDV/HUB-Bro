@@ -56,3 +56,13 @@
   .nav { flex-direction: row; overflow-x: auto; }
   .item { flex-shrink: 0; }
 }
+
+/* Где лежат данные: на сервере или только в этом браузере. Красное — правки сейчас не сохраняются. */
+.sync {
+  margin-top: auto;
+  padding: 0 var(--space-2);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.syncError { color: var(--danger-text); font-weight: 600; }
