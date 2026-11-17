@@ -5,9 +5,10 @@ import { useOrders } from "@/shared/orders";
 import { PRINTER_STATUS, usePrinterLink } from "@/shared/printer";
 import { Collapse, PageHeader, StatTiles, StatusBadge } from "@/shared/ui";
 import { BatchCard } from "./BatchCard/BatchCard";
+import { QuickPrint } from "./QuickPrint/QuickPrint";
 import styles from "./LabelsPage.module.css";
 
-// Пульт: партии из комплектации — печать и «Партия расклеена». Описание — docs/ORDERS.md, «Комплектация и пульт».
+// Пульт: партии из комплектации — печать и «Партия расклеена». Описание — docs/PICKING.md, раздел 8.
 export default function LabelsPage() {
   const batches = useBatches();
   const orders = useOrders();
@@ -36,6 +37,8 @@ export default function LabelsPage() {
           { label: "Ошибок сегодня", value: issuesToday, detail: "вернулись в очередь", alert: issuesToday > 0 },
         ]}
       />
+
+      <QuickPrint />
 
       <div className={styles.sectionHead}>
         <h2 className={styles.sectionTitle}>На пульте</h2>
