@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { formatOrderId, SERVICE_LABEL } from "@/shared/orders";
 import { formatTime, isToday } from "@/shared/fulfillment";
-import { isOverdue, type QueueGroup } from "../queue";
+import { isOverdue, type QueueGroup } from "@/shared/fulfillment";
 import styles from "./QueueGroupCard.module.css";
 
 type Props = {

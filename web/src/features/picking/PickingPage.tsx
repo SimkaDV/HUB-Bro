@@ -1,14 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
+  ALL_SELECTED,
   BATCH_STATE,
   batchState,
+  buildQueue,
+  countBy,
   createBatch,
+  describeSelection,
+  filterQueue,
   formatTime,
+  groupQueue,
   isToday,
   orderStage,
+  sortQueue,
   useBatches,
   useServiceOrder,
+  type QueueSelection,
 } from "@/shared/fulfillment";
 import { SERVICE_LABEL, useOrders } from "@/shared/orders";
 import { useStock } from "@/shared/stock";
@@ -16,32 +24,24 @@ import { Button, PageHeader, StatTiles, StatusBadge } from "@/shared/ui";
 import { ProblemList } from "./ProblemList/ProblemList";
 import { QueueGroupCard } from "./QueueGroupCard/QueueGroupCard";
 import { QueueSettings } from "./QueueSettings/QueueSettings";
-import {
-  buildQueue,
-  countBy,
-  DEFAULT_CONFIG,
-  describeConfig,
-  filterQueue,
-  groupQueue,
-  sortQueue,
-  type QueueConfig,
-} from "./queue";
 import styles from "./PickingPage.module.css";
 
-// Настройка очереди — удобство одного браузера, поэтому просто localStorage.
-const CONFIG_KEY = "hubbro.picking.queue.v2";
+// Выбор «Что печатать» — удобство одного браузера, поэтому просто localStorage.
+const SELECTION_KEY = "hubbro.picking.queue.v3";
 
-function loadConfig(): QueueConfig {
+function loadSelection(): QueueSelection {
   try {
-    const raw = localStorage.getItem(CONFIG_KEY);
+    const raw = localStorage.getItem(SELECTION_KEY);
     if (raw) {
-      const saved = JSON.parse(raw) as Partial<QueueConfig>;
-      return { models: saved.models ?? [], sizes: saved.sizes ?? [], services: saved.services ?? [] };
+      const saved = JSON.parse(raw) as Partial<QueueSelection>;
+      const products = saved.products && typeof saved.products === "object" ? saved.products : null;
+      const services = Array.isArray(saved.services) ? saved.services : null;
+      return { products, services };
     }
   } catch {
-    // Нет доступа или мусор — настройка по умолчанию.
+    // Нет доступа или мусор — «Все».
   }
-  return DEFAULT_CONFIG;
+  return ALL_SELECTED;
 }
 
 export default function PickingPage() {
@@ -49,18 +49,18 @@ export default function PickingPage() {
   const batches = useBatches();
   const { models, categories } = useStock();
   const serviceOrder = useServiceOrder();
-  const [config, setConfig] = useState(loadConfig);
+  const [selection, setSelection] = useState(loadSelection);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [problemsOpen, setProblemsOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     try {
-      localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+      localStorage.setItem(SELECTION_KEY, JSON.stringify(selection));
     } catch {
       // Не сохранилось — не страшно.
     }
-  }, [config]);
+  }, [selection]);
 
   useEffect(() => {
     if (!notice) return;
@@ -72,7 +72,7 @@ export default function PickingPage() {
     () => buildQueue(orders, batches, models, categories, serviceOrder),
     [orders, batches, models, categories, serviceOrder],
   );
-  const visible = useMemo(() => sortQueue(filterQueue(queue, config)), [queue, config]);
+  const visible = useMemo(() => sortQueue(filterQueue(queue, selection)), [queue, selection]);
   const groups = groupQueue(visible);
   const visibleIds = new Set(visible.map((i) => i.order.id));
   const picked = [...selected].filter((id) => visibleIds.has(id));
@@ -99,7 +99,7 @@ export default function PickingPage() {
     const ordered = visible.map((i) => i.order.id).filter((id) => set.has(id));
     if (ordered.length === 0) return;
     const number = batches.reduce((max, b) => Math.max(max, b.number), 0) + 1;
-    createBatch(ordered, describeConfig(config));
+    createBatch(ordered, describeSelection(selection));
     select(ordered, false);
     setNotice(`Партия №${number} на пульте: ${ordered.length} шт.`);
   };
@@ -149,8 +149,8 @@ export default function PickingPage() {
       </h2>
 
       <QueueSettings
-        config={config}
-        onChange={setConfig}
+        selection={selection}
+        onChange={setSelection}
         items={queue}
         modelOrder={models.map((m) => m.name)}
         sizeOrder={(name) => models.find((m) => m.name === name)?.sizes.map((s) => s.size) ?? []}

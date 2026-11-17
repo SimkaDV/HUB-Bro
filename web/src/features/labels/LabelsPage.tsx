@@ -4,9 +4,10 @@ import { batchState, isActive, isToday, useBatches } from "@/shared/fulfillment"
 import { useOrders } from "@/shared/orders";
 import { Collapse, PageHeader, StatTiles } from "@/shared/ui";
 import { BatchCard } from "./BatchCard/BatchCard";
+import { QuickPrint } from "./QuickPrint/QuickPrint";
 import styles from "./LabelsPage.module.css";
 
-// Пульт: партии из комплектации — печать и «Партия расклеена». Описание — docs/ORDERS.md, «Комплектация и пульт».
+// Пульт: партии из комплектации — печать и «Партия расклеена». Описание — docs/PICKING.md, раздел 8.
 export default function LabelsPage() {
   const batches = useBatches();
   const orders = useOrders();
@@ -34,6 +35,8 @@ export default function LabelsPage() {
           { label: "Ошибок сегодня", value: issuesToday, detail: "вернулись в очередь", alert: issuesToday > 0 },
         ]}
       />
+
+      <QuickPrint />
 
       <h2 className={styles.sectionTitle}>На пульте</h2>
       {active.length === 0 ? (
