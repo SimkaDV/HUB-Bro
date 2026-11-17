@@ -7,19 +7,17 @@ import { useSyncExternalStore } from "react";
 export type Store<T> = {
   /** Ключ в localStorage — он же ключ на сервере (shared/lib/sync.ts). */
   key: string;
-  /** Данные взяты из localStorage, а не тестовые по умолчанию. */
-  fromStorage: boolean;
   /** Подставить данные с сервера: через ту же миграцию, что и при загрузке. */
   hydrate: (raw: unknown) => void;
   get: () => T;
   set: (update: (state: T) => T) => void;
   subscribe: (listener: () => void) => () => void;
   use: () => T;
+  /** Вернуть к значению по умолчанию (пусто). */
   reset: () => void;
 };
 
 export function createStore<T>(key: string, init: () => T, migrate: (saved: Partial<T>) => T = (s) => ({ ...init(), ...s })): Store<T> {
-  let fromStorage = false;
   let state = load();
   const listeners = new Set<() => void>();
 
@@ -27,12 +25,10 @@ export function createStore<T>(key: string, init: () => T, migrate: (saved: Part
     try {
       const raw = localStorage.getItem(key);
       if (raw) {
-        const loaded = migrate(JSON.parse(raw) as Partial<T>);
-        fromStorage = true;
-        return loaded;
+        return migrate(JSON.parse(raw) as Partial<T>);
       }
     } catch {
-      // Повреждённые данные — начинаем с тестовых.
+      // Повреждённые данные — начинаем с пустого.
     }
     return init();
   }
@@ -57,7 +53,6 @@ export function createStore<T>(key: string, init: () => T, migrate: (saved: Part
 
   return {
     key,
-    fromStorage,
     hydrate: (raw) => set(() => migrate(raw as Partial<T>)),
     get,
     set,

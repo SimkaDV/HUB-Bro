@@ -23,7 +23,7 @@ export {
   type PrinterSettings,
 } from "./settings";
 export { PRINTER_STATUS } from "./status";
-export { pairPrinter, PrinterError, usePrinterLink, type PrinterLink, type PrinterLinkState } from "./usb";
+export { forgetPrinter, pairPrinter, PrinterError, usePrinterLink, type PrinterLink, type PrinterLinkState } from "./usb";
 
 /** Нарисовать бирки и отправить их принтеру одним заданием, в том же порядке. */
 export async function printLabels(labels: LabelData[], settings: PrinterSettings): Promise<void> {

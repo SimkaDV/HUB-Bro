@@ -21,3 +21,16 @@
 }
 
 .back:hover { color: var(--text); }
+
+/* Пустой склад: что сделать первым. */
+.empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 640px;
+  color: var(--text-secondary);
+}
+
+.emptyTitle { font-size: 18px; font-weight: 600; color: var(--text); }
+
+.emptyActions { display: flex; gap: var(--space-2); flex-wrap: wrap; }

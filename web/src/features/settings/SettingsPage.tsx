@@ -3,13 +3,14 @@ import { useAvitoLink } from "@/shared/avito";
 import { PRINTER_MODEL, PRINTER_STATUS, usePrinterLink, usePrinterSettings } from "@/shared/printer";
 import { PageHeader } from "@/shared/ui";
 import { AvitoExtension } from "./AvitoExtension/AvitoExtension";
+import { ClearData } from "./ClearData/ClearData";
 import { CONNECTIONS, useConnections } from "./connections";
 import { ConnectionForm, connectionStatus } from "./ConnectionForm/ConnectionForm";
 import { PrinterForm } from "./PrinterForm/PrinterForm";
 import { SettingsSection } from "./SettingsSection/SettingsSection";
 import styles from "./SettingsPage.module.css";
 
-type SectionId = "avito" | "extension" | "telegram" | "printer" | "auth";
+type SectionId = "avito" | "extension" | "telegram" | "printer" | "auth" | "data";
 
 // Настройки кабинета: раскрывающиеся разделы. Описание — docs/SETTINGS.md.
 export default function SettingsPage() {
@@ -35,8 +36,8 @@ export default function SettingsPage() {
 
       <div className={styles.list}>
         <p className={styles.note}>
-          Пока сервера нет, всё хранится только в этом браузере и никуда не отправляется. Проверить, что ключи
-          рабочие, сможем, когда подключим сервер.
+          Ключи Авито и Telegram и настройки принтера хранятся только в этом браузере и на сервер не уходят — на
+          каждом компе их вносят отдельно.
         </p>
 
         {CONNECTIONS.map((def) => (
@@ -78,6 +79,15 @@ export default function SettingsPage() {
           <p className={styles.stub}>
             Пока кабинет открыт всем, у кого есть ссылка. Здесь появятся вход и доступы: кто что может делать на сайте.
           </p>
+        </SettingsSection>
+
+        <SettingsSection
+          title="Данные"
+          description="Очистить кабинет и начать с чистого листа."
+          status={{ tone: "neutral", label: "Осторожно" }}
+          {...sectionProps("data")}
+        >
+          <ClearData />
         </SettingsSection>
       </div>
     </>

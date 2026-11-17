@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { collectFromAvito, useAvitoLink } from "@/shared/avito";
 import { isActive, useBatches } from "@/shared/fulfillment";
 import { GROUPS, useOrders, type OrderGroup } from "@/shared/orders";
@@ -42,7 +42,7 @@ export default function OrdersPage() {
     <>
       <PageHeader
         title="Заказы"
-        subtitle={lastSync ? `Из Авито · сверено ${formatDateTime(lastSync)}` : "Тестовые данные — подтяните заказы из Авито"}
+        subtitle={lastSync ? `Из Авито · сверено ${formatDateTime(lastSync)}` : "Заказы из Авито — подтяните первые"}
         actions={
           <>
             <Button
@@ -103,7 +103,21 @@ export default function OrdersPage() {
 
       {searching && <p className={styles.note}>Ищем по всем заказам, фильтры не действуют</p>}
 
-      {days.length === 0 ? (
+      {orders.length === 0 ? (
+        <Card className={styles.empty}>
+          <p className={styles.emptyTitle}>Заказов пока нет</p>
+          <p>
+            Заказы приходят из кабинета Авито через расширение Chrome: установите его в{" "}
+            <Link to="/settings">Настройках → Расширение Авито</Link> и нажмите «Подтянуть из Авито».
+          </p>
+          {models.length === 0 && (
+            <p>
+              Сначала заведите модели на <Link to="/stock">складе</Link>, иначе заказы встанут с проблемой «Товар не
+              выбран».
+            </p>
+          )}
+        </Card>
+      ) : days.length === 0 ? (
         <Card className={styles.empty}>{searching ? "Ничего не нашли" : "Заказов нет"}</Card>
       ) : (
         <div className={styles.days}>

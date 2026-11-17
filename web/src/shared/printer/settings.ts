@@ -67,8 +67,8 @@ export const PRINTER_LIMITS = {
 
 export type PrinterNumberKey = keyof typeof PRINTER_LIMITS;
 
-// v2: бирка 40×58 и раскладка. В v1 было 80×50 — старые настройки не тянем.
-const STORAGE_KEY = "hubbro.printer.v2";
+// v3: чистый старт — старые настройки не тянем. v2: бирка 40×58 и раскладка (в v1 было 80×50).
+const STORAGE_KEY = "hubbro.printer.v3";
 
 export const printerStore = createStore<PrinterSettings>(STORAGE_KEY, () => DEFAULT_PRINTER);
 

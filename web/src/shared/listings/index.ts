@@ -1,6 +1,6 @@
 // Объявления Авито нужны нескольким разделам: «Объявления» привязывают их к моделям, склад показывает,
 // сколько объявлений у модели, позже заказ будет узнавать товар по объявлению. Поэтому живут в shared.
-// Пока хранятся в браузере (localStorage), с бэкендом — на сервере. Описание — docs/LISTINGS.md
+// Хранятся в браузере и на сервере (shared/lib/sync.ts). Описание — docs/LISTINGS.md
 import { createStore } from "@/shared/lib/store";
 import { fetchListings } from "./avito";
 import { mergeListings } from "./listings";
@@ -10,7 +10,7 @@ export { fetchListingDetails, type ListingDetails } from "./avito";
 export { isActive, linkedModel, listingsCount, listingStatus, sortListings, STATUS_META } from "./listings";
 export type { Listing, ListingStats, ListingStatus, ListingsState } from "./types";
 
-const STORAGE_KEY = "hubbro.listings.v1";
+const STORAGE_KEY = "hubbro.listings.v2";
 
 export const listingsStore = createStore<ListingsState>(STORAGE_KEY, () => ({ listings: [] }));
 

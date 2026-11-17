@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   ALL_SELECTED,
   buildQueue,
@@ -70,7 +71,15 @@ export function QuickPrint() {
       </div>
 
       {queue.length === 0 ? (
-        <p className={styles.empty}>Очередь пуста — всё на пульте</p>
+        <p className={styles.empty}>
+          {orders.length === 0 ? (
+            <>
+              Заказов пока нет — подтяните их на экране <Link to="/orders">«Заказы»</Link>.
+            </>
+          ) : (
+            "Очередь пуста — всё на пульте"
+          )}
+        </p>
       ) : (
         <>
           <QueueFilter

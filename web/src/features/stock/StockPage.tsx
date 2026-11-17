@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Button, PageHeader } from "@/shared/ui";
+import { Button, Card, PageHeader } from "@/shared/ui";
 import { DeliveryDialog } from "./DeliveryDialog/DeliveryDialog";
 import { isModelVisible, lineQty } from "./delivery";
 import { HistoryView } from "./HistoryView/HistoryView";
@@ -33,7 +33,7 @@ export default function StockPage() {
     <StockSettingsContext.Provider value={settings}>
       <PageHeader
         title={TITLES[view]}
-        subtitle="Тестовые данные хранятся в этом браузере, к базе подключим позже"
+        subtitle="Модели, остатки и поставки"
         actions={
           <>
             <Button onClick={() => setDeliveryOpen(true)}>+ Поставка</Button>
@@ -58,7 +58,25 @@ export default function StockPage() {
       )}
 
       <div className={styles.view} key={view}>
-        {view === "stock" && <StockOverview models={store.models.filter(isModelVisible)} />}
+        {view === "stock" &&
+          (store.models.length === 0 ? (
+            <Card className={styles.empty}>
+              <h2 className={styles.emptyTitle}>Склад пуст — начните с модели</h2>
+              <p>
+                Нажмите «+ Поставка» и в ней «+ Новая модель» — модель заведётся вместе с первыми джинсами. Или
+                заведите её без поставки в настройках склада: сначала категория с размерами, потом модель.
+              </p>
+              <p>Потом подключите Авито в настройках кабинета и привяжите объявления к моделям — тогда заказы узнают товар.</p>
+              <div className={styles.emptyActions}>
+                <Button onClick={() => setDeliveryOpen(true)}>+ Поставка</Button>
+                <Button variant="secondary" onClick={() => setView("settings")}>
+                  Завести модель в настройках
+                </Button>
+              </div>
+            </Card>
+          ) : (
+            <StockOverview models={store.models.filter(isModelVisible)} />
+          ))}
         {view === "history" && (
           <HistoryView
             models={store.models}

@@ -1,8 +1,8 @@
 // Синхронизация общих хранилищ с сервером (Vercel + Redis, web/api/state.ts). Описание — docs/ARCHITECTURE.md, «Сервер».
 //
-// При старте забираем данные с сервера и подставляем вместо браузерных. На сервере пусто, а в браузере есть свои
-// данные (не тестовые) — заливаем их туда: так переезжают данные с localhost. Дальше каждое изменение уходит на
-// сервер (через полсекунды тишины), а раз в 15 секунд смотрим, не поменял ли кто-то другой.
+// При старте забираем данные с сервера и подставляем вместо браузерных. Сервер главнее: на сервере пусто — и в
+// браузере пусто, данные из браузера на сервер сами не переезжают. Дальше каждое изменение уходит на сервер
+// (через полсекунды тишины), а раз в 15 секунд смотрим, не поменял ли кто-то другой.
 // Кто сохранил последним, того и данные: одновременная правка одного и того же с двух компов — последняя победит.
 // Сервера нет (локально без прокси) — кабинет работает как раньше, только в браузере.
 import { useSyncExternalStore } from "react";
@@ -48,6 +48,14 @@ function headers(): HeadersInit {
 
 class NoServer extends Error {}
 
+let flush: () => Promise<boolean> = async () => true;
+
+/**
+ * Отправить на сервер всё, что ждёт отправки, не дожидаясь паузы. true — сервер всё принял (или сервера нет).
+ * Нужно «Очистить все данные»: перед перезагрузкой страницы.
+ */
+export const flushServerSync = () => flush();
+
 // Ключ спрашиваем один раз на все параллельные запросы.
 let asking: Promise<boolean> | null = null;
 function askKey(): Promise<boolean> {
@@ -82,7 +90,7 @@ async function call<T>(url: string, init?: RequestInit, retry = true): Promise<T
 type Entry = {
   store: Store<unknown>;
   rev: number;
-  /** Сервер уже отдал данные (или принял наши). До этого ничего не отправляем — чтобы не затереть его тестовыми. */
+  /** Сервер уже отдал данные (или принял наши). До этого ничего не отправляем — чтобы не затереть его старыми. */
   loaded: boolean;
   timer?: ReturnType<typeof setTimeout>;
   applying: boolean;
@@ -90,7 +98,7 @@ type Entry = {
 
 /**
  * Подключить хранилища к серверу. Ждём первую загрузку (не дольше нескольких секунд), чтобы не показать
- * на новом компе тестовые данные вместо настоящих.
+ * на новом компе пустой кабинет вместо настоящих данных.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- хранилища разных типов, синхронизации тип не важен
 export async function startServerSync(stores: Store<any>[]): Promise<void> {
@@ -110,7 +118,7 @@ export async function startServerSync(stores: Store<any>[]): Promise<void> {
     e.loaded = true;
   };
 
-  const push = async (e: Entry) => {
+  const push = async (e: Entry): Promise<boolean> => {
     e.timer = undefined;
     setState("saving");
     try {
@@ -121,9 +129,18 @@ export async function startServerSync(stores: Store<any>[]): Promise<void> {
       e.rev = rev;
       e.loaded = true;
       if ([...entries.values()].every((x) => !x.timer)) setState("synced");
+      return true;
     } catch (err) {
       setState("error", err instanceof Error ? err.message : String(err));
+      return false;
     }
+  };
+
+  flush = async () => {
+    const pending = [...entries.values()].filter((e) => e.timer);
+    for (const e of pending) clearTimeout(e.timer);
+    const results = await Promise.all(pending.map(push));
+    return results.every(Boolean);
   };
 
   const schedule = (e: Entry) => {
@@ -132,13 +149,18 @@ export async function startServerSync(stores: Store<any>[]): Promise<void> {
     e.timer = setTimeout(() => void push(e), PUSH_DELAY);
   };
 
-  /** Первая загрузка хранилища: данные сервера, а если там пусто — наши (только свои, не тестовые). */
+  /** Первая загрузка хранилища: данные сервера, а если там пусто — и в браузере пусто (сервер главнее). */
   const load = async (e: Entry) => {
     const { value, rev } = await call<{ value: unknown; rev: number }>(`${API}?key=${encodeURIComponent(e.store.key)}`);
     if (e.loaded) return;
-    if (value !== null) apply(e, value, rev);
-    else if (e.store.fromStorage) await push(e); // переезд: на сервере пусто, в браузере свои данные
-    else e.loaded = true; // пусто и там и тут: дальше правки уходят на сервер
+    if (value !== null) return apply(e, value, rev);
+    e.applying = true;
+    try {
+      e.store.reset();
+    } finally {
+      e.applying = false;
+    }
+    e.loaded = true; // дальше правки уходят на сервер
   };
 
   try {

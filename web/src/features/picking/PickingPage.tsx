@@ -27,7 +27,7 @@ import { QueueSettings } from "./QueueSettings/QueueSettings";
 import styles from "./PickingPage.module.css";
 
 // Выбор «Что печатать» — удобство одного браузера, поэтому просто localStorage.
-const SELECTION_KEY = "hubbro.picking.queue.v3";
+const SELECTION_KEY = "hubbro.picking.queue.v4";
 
 function loadSelection(): QueueSelection {
   try {
@@ -158,7 +158,17 @@ export default function PickingPage() {
       />
 
       {groups.length === 0 ? (
-        <p className={styles.empty}>{queue.length ? "Под фильтр ничего не попало" : "Очередь пуста — всё отправлено на пульт"}</p>
+        <p className={styles.empty}>
+          {queue.length ? (
+            "Под фильтр ничего не попало"
+          ) : orders.length === 0 ? (
+            <>
+              Заказов пока нет — подтяните их на экране <Link to="/orders">«Заказы»</Link>.
+            </>
+          ) : (
+            "Очередь пуста — всё отправлено на пульт"
+          )}
+        </p>
       ) : (
         <div className={styles.groups}>
           {groups.map((g) => (
