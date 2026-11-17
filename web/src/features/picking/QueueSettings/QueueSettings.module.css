@@ -20,12 +20,6 @@
   color: var(--text-secondary);
 }
 
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
 .levels {
   margin: 0;
   padding: 0;

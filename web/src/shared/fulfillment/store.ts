@@ -44,13 +44,14 @@ export function startReserveSync() {
   listingsStore.subscribe(sync);
 }
 
-/** Комплектация: отправить заказы на пульт одной партией. */
-export function createBatch(orderIds: string[], note: string) {
+/** Комплектация или быстрая печать на пульте: отправить заказы на пульт одной партией. Возвращает номер. */
+export function createBatch(orderIds: string[], note: string): number | undefined {
   if (orderIds.length === 0) return;
+  const number = batchesStore.get().reduce((max, b) => Math.max(max, b.number), 0) + 1;
   batchesStore.set((list) => [
     {
       id: newId(),
-      number: list.reduce((max, b) => Math.max(max, b.number), 0) + 1,
+      number,
       createdAt: new Date().toISOString(),
       orderIds,
       note,
@@ -58,6 +59,7 @@ export function createBatch(orderIds: string[], note: string) {
     },
     ...list,
   ]);
+  return number;
 }
 
 const patchBatch = (id: string, patch: Partial<PrintBatch>) =>

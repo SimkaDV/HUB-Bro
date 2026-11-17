@@ -1,18 +1,23 @@
-import { orderStage, type PrintBatch } from "@/shared/fulfillment";
+import { orderStage } from "./batches";
+import type { PrintBatch } from "./types";
 import { SERVICE_LABEL, type DeliveryService, type Order } from "@/shared/orders";
 import type { Category, Model } from "@/shared/stock";
 
 // Очередь печати: какие заказы в ней, как отсортировать, сгруппировать и отфильтровать.
 // Описание — docs/PICKING.md, раздел 6.
 
-export type QueueConfig = {
-  /** Фильтры. Пусто — все. */
-  models: string[];
-  sizes: string[];
-  services: DeliveryService[];
+/**
+ * Выбор «что печатать» — общий для комплектации и быстрой печати на пульте.
+ * `null` — все. У товара `null` — все его размеры. Товар и служба складываются через «и».
+ */
+export type QueueSelection = {
+  products: Record<string, string[] | null> | null;
+  services: DeliveryService[] | null;
 };
 
-export const DEFAULT_CONFIG: QueueConfig = { models: [], sizes: [], services: [] };
+export const ALL_SELECTED: QueueSelection = { products: null, services: null };
+
+export const isAllSelected = (s: QueueSelection) => s.products === null && s.services === null;
 
 /** Порядок очереди один и всегда тот же: подошёл к полке товара, расклеил размер по стопкам служб, дальше. */
 export const QUEUE_ORDER = "Категория → Товар → Размер → Служба";
@@ -56,13 +61,67 @@ export function buildQueue(
     });
 }
 
-export function filterQueue(items: QueueItem[], c: QueueConfig) {
-  return items.filter(
-    (i) =>
-      (c.models.length === 0 || c.models.includes(i.order.product)) &&
-      (c.sizes.length === 0 || c.sizes.includes(i.order.size ?? "")) &&
-      (c.services.length === 0 || c.services.includes(i.order.service)),
-  );
+/** Что вообще можно выбрать: товары, размеры товара и службы, которые сейчас есть в очереди. */
+export type SelectionOptions = {
+  products: string[];
+  sizes: (product: string) => string[];
+  services: DeliveryService[];
+};
+
+const toggleIn = <T,>(list: T[], value: T) => (list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
+
+const productMap = (s: QueueSelection, o: SelectionOptions) =>
+  s.products ?? Object.fromEntries(o.products.map((p) => [p, null as string[] | null]));
+
+/** Отмечены все товары очереди со всеми размерами — снова «все». */
+const normalizeProducts = (p: Record<string, string[] | null>, o: SelectionOptions) =>
+  o.products.every((name) => name in p && p[name] === null) ? null : p;
+
+export const isProductSelected = (s: QueueSelection, product: string) => !s.products || product in s.products;
+
+export const isSizeSelected = (s: QueueSelection, product: string, size: string) => {
+  if (!isProductSelected(s, product)) return false;
+  const sizes = s.products?.[product] ?? null;
+  return sizes === null || sizes.includes(size);
+};
+
+export const isServiceSelected = (s: QueueSelection, service: DeliveryService) => !s.services || s.services.includes(service);
+
+/** Снять / отметить товар. Сняли хоть один из «всех» — включается выбор по товару. */
+export function toggleProduct(s: QueueSelection, product: string, o: SelectionOptions): QueueSelection {
+  const next = { ...productMap(s, o) };
+  if (product in next) delete next[product];
+  else next[product] = null;
+  return { ...s, products: normalizeProducts(next, o) };
+}
+
+/** Снять / отметить размер у товара. Сняли последний размер — снят и товар. */
+export function toggleSize(s: QueueSelection, product: string, size: string, o: SelectionOptions): QueueSelection {
+  const next = { ...productMap(s, o) };
+  const all = o.sizes(product);
+  const sizes = toggleIn(next[product] ?? all, size);
+  if (sizes.length === 0) delete next[product];
+  else next[product] = all.every((x) => sizes.includes(x)) ? null : all.filter((x) => sizes.includes(x));
+  return { ...s, products: normalizeProducts(next, o) };
+}
+
+/** Снять / отметить службу. Отмечены все — снова «все». */
+export function toggleService(s: QueueSelection, service: DeliveryService, o: SelectionOptions): QueueSelection {
+  const services = toggleIn(s.services ?? o.services, service);
+  return { ...s, services: o.services.every((x) => services.includes(x)) ? null : services };
+}
+
+/** Заказ подходит под выбор: его товар отмечен (и размер, если у товара выбраны размеры), служба отмечена. */
+export function matchesSelection(order: Order, s: QueueSelection) {
+  if (s.services && !s.services.includes(order.service)) return false;
+  if (!s.products) return true;
+  if (!(order.product in s.products)) return false;
+  const sizes = s.products[order.product];
+  return sizes === null || sizes.includes(order.size ?? "");
+}
+
+export function filterQueue(items: QueueItem[], s: QueueSelection) {
+  return items.filter((i) => matchesSelection(i.order, s));
 }
 
 /** Сравнение без NaN: Infinity − Infinity даёт NaN, а сортировке нужен 0. */
@@ -115,9 +174,10 @@ export function groupQueue(sorted: QueueItem[]): QueueGroup[] {
   return groups;
 }
 
-/** Подпись партии: порядок и фильтры, если были. */
-export function describeConfig(c: QueueConfig) {
-  const filters = [...c.models, ...c.sizes, ...c.services.map((s) => SERVICE_LABEL[s])];
+/** Подпись партии: порядок и выбор, если не «Все». */
+export function describeSelection(s: QueueSelection) {
+  const products = Object.entries(s.products ?? {}).map(([name, sizes]) => (sizes ? `${name} (${sizes.join(", ")})` : name));
+  const filters = [...products, ...(s.services ?? []).map((x) => SERVICE_LABEL[x])];
   return filters.length ? `${QUEUE_ORDER} · только ${filters.join(", ")}` : QUEUE_ORDER;
 }
 
