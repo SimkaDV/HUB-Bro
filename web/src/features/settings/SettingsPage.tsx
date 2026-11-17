@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAvitoLink } from "@/shared/avito";
-import { PRINTER_MODEL, usePrinterLink, usePrinterSettings, type PrinterLinkState } from "@/shared/printer";
-import { PageHeader, type StatusTone } from "@/shared/ui";
+import { PRINTER_MODEL, PRINTER_STATUS, usePrinterLink, usePrinterSettings } from "@/shared/printer";
+import { PageHeader } from "@/shared/ui";
 import { AvitoExtension } from "./AvitoExtension/AvitoExtension";
 import { CONNECTIONS, useConnections } from "./connections";
 import { ConnectionForm, connectionStatus } from "./ConnectionForm/ConnectionForm";
@@ -11,20 +11,14 @@ import styles from "./SettingsPage.module.css";
 
 type SectionId = "avito" | "extension" | "telegram" | "printer" | "auth";
 
-const PRINTER_STATUS: Record<PrinterLinkState, { tone: StatusTone; label: string }> = {
-  unsupported: { tone: "danger", label: "Нужен Chrome" },
-  notPaired: { tone: "neutral", label: "Не подключён" },
-  notFound: { tone: "warning", label: "Не найден" },
-  ready: { tone: "success", label: "Подключён" },
-};
-
 // Настройки кабинета: раскрывающиеся разделы. Описание — docs/SETTINGS.md.
 export default function SettingsPage() {
   const connections = useConnections();
   const printer = usePrinterSettings();
   const printerLink = usePrinterLink();
   const avitoLink = useAvitoLink();
-  const [open, setOpen] = useState<Set<SectionId>>(new Set());
+  // Ссылка с пульта «/settings#printer» сразу раскрывает раздел принтера.
+  const [open, setOpen] = useState<Set<SectionId>>(() => new Set(window.location.hash === "#printer" ? ["printer"] : []));
 
   const toggle = (id: SectionId) =>
     setOpen((s) => {

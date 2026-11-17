@@ -63,8 +63,17 @@ export function createBatch(orderIds: string[], note: string) {
 const patchBatch = (id: string, patch: Partial<PrintBatch>) =>
   batchesStore.set((list) => list.map((b) => (b.id === id ? { ...b, ...patch } : b)));
 
-/** Пульт: партия напечатана. Пока без принтера — просто отметка. */
+/** Пульт: принтер принял бирки партии. Вызывать только после успешной отправки. */
 export const markPrinted = (id: string) => patchBatch(id, { printedAt: new Date().toISOString() });
+
+/** Пульт: перепечатали всю партию или одну бирку — запись в историю партии. `printedAt` не меняется. */
+export function markReprinted(id: string, orderId?: string) {
+  batchesStore.set((list) =>
+    list.map((b) =>
+      b.id === id ? { ...b, reprints: [...(b.reprints ?? []), { at: new Date().toISOString(), ...(orderId ? { orderId } : {}) }] } : b,
+    ),
+  );
+}
 
 /** Пульт: вернуть нерасклеенную партию в очередь. Запись остаётся. */
 export const cancelBatch = (id: string) => patchBatch(id, { cancelledAt: new Date().toISOString() });

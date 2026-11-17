@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { batchState, isActive, isToday, useBatches } from "@/shared/fulfillment";
 import { useOrders } from "@/shared/orders";
-import { Collapse, PageHeader, StatTiles } from "@/shared/ui";
+import { PRINTER_STATUS, usePrinterLink } from "@/shared/printer";
+import { Collapse, PageHeader, StatTiles, StatusBadge } from "@/shared/ui";
 import { BatchCard } from "./BatchCard/BatchCard";
 import styles from "./LabelsPage.module.css";
 
@@ -10,6 +11,7 @@ import styles from "./LabelsPage.module.css";
 export default function LabelsPage() {
   const batches = useBatches();
   const orders = useOrders();
+  const printer = usePrinterLink();
   const [historyOpen, setHistoryOpen] = useState(false);
   const byId = useMemo(() => new Map(orders.map((o) => [o.id, o])), [orders]);
 
@@ -24,7 +26,7 @@ export default function LabelsPage() {
 
   return (
     <>
-      <PageHeader title="Пульт" subtitle="Печать и расклейка партий из комплектации. Принтер подключим позже" />
+      <PageHeader title="Пульт" subtitle="Печать и расклейка партий из комплектации" />
 
       <StatTiles
         tiles={[
@@ -35,7 +37,13 @@ export default function LabelsPage() {
         ]}
       />
 
-      <h2 className={styles.sectionTitle}>На пульте</h2>
+      <div className={styles.sectionHead}>
+        <h2 className={styles.sectionTitle}>На пульте</h2>
+        <span className={styles.printer}>
+          <StatusBadge tone={PRINTER_STATUS[printer.state].tone}>Принтер: {PRINTER_STATUS[printer.state].label}</StatusBadge>
+          {printer.state !== "ready" && printer.state !== "unsupported" && <Link to="/settings#printer">настройки →</Link>}
+        </span>
+      </div>
       {active.length === 0 ? (
         <p className={styles.empty}>
           Партий нет. Собери партию в <Link to="/picking">комплектации</Link>.
