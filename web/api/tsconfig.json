@@ -1,0 +1,18 @@
+{
+  // Функции Vercel (Node). Отдельно от кабинета: тут типы Node, нет DOM-компонентов и алиаса @.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "tsBuildInfoFile": "../node_modules/.tmp/tsconfig.api.tsbuildinfo"
+  },
+  "include": ["."]
+}

@@ -28,7 +28,8 @@ export function AvitoExtension({ version }: { version?: string }) {
             Откройте <code>chrome://extensions</code> и включите «Режим разработчика» справа сверху.
           </li>
           <li>
-            «Загрузить распакованное» → папка <code>extension</code> из проекта HUB BRO.
+            «Загрузить распакованное» → папка <code>extension</code> из проекта HUB BRO. Уже стоит — обновите папку
+            и нажмите у расширения «Обновить»: сайт видит версия 0.2.0 и новее.
           </li>
           <li>Войдите в Авито в этом же Chrome и обновите эту страницу.</li>
         </ol>

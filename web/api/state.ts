@@ -27,6 +27,17 @@ function redis() {
   return new Redis({ url, token, automaticDeserialization: false });
 }
 
+/**
+ * Версии из хеша hubbro:revs. С automaticDeserialization: false Upstash отдаёт HGETALL плоским массивом
+ * [ключ, значение, ключ, значение…], а не объектом — разбираем оба вида.
+ */
+function toRevs(raw: unknown): Record<string, number> {
+  const pairs: [string, unknown][] = Array.isArray(raw)
+    ? Array.from({ length: Math.floor(raw.length / 2) }, (_, i) => [String(raw[2 * i]), raw[2 * i + 1]])
+    : Object.entries((raw as Record<string, unknown> | null) ?? {});
+  return Object.fromEntries(pairs.filter(([k]) => KEYS.has(k)).map(([k, v]) => [k, Number(v)]));
+}
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
 
@@ -44,8 +55,7 @@ export async function GET(req: Request) {
 
   const key = new URL(req.url).searchParams.get("key");
   if (!key) {
-    const raw = (await db.hgetall<Record<string, string>>(REVS)) ?? {};
-    return json({ revs: Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, Number(v)])) });
+    return json({ revs: toRevs(await db.hgetall(REVS)) });
   }
   if (!KEYS.has(key)) return json({ error: "Неизвестный ключ" }, 400);
   const [value, rev] = await Promise.all([db.get<string>(stateKey(key)), db.hget<string>(REVS, key)]);
