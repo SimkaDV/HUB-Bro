@@ -15,7 +15,7 @@ function normalize(saved: unknown): DeliveryService[] {
 }
 
 export const serviceOrderStore = createStore<DeliveryService[]>(
-  "hubbro.picking.services.v1",
+  "hubbro.picking.services.v2",
   () => DEFAULT_SERVICE_ORDER,
   (saved) => normalize(saved),
 );

@@ -1,5 +1,4 @@
 import { useSyncExternalStore } from "react";
-import { removeTestOrders } from "@/shared/fulfillment";
 import { mergeAvitoBatch, ordersStore, parseAvitoBatch, type AvitoBatch, type ImportReport } from "@/shared/orders";
 
 // Связь с расширением «HUB BRO — заказы Авито» (папка extension/) и приём пачек заказов.
@@ -33,14 +32,8 @@ export const useAvitoLink = () =>
 
 const toExt = (msg: Record<string, unknown>) => window.postMessage({ source: "hubbro-page", ...msg }, location.origin);
 
-let askedAboutTest = false;
-
-/** Принимает пачку: перед первыми живыми заказами предлагает убрать тестовые, потом сливает без дублей. */
+/** Принимает пачку и сливает с заказами без дублей. */
 export function importAvitoBatch(batch: AvitoBatch): ImportReport {
-  if (!askedAboutTest && ordersStore.get().some((o) => !o.syncedAt)) {
-    askedAboutTest = true;
-    if (window.confirm("Пришли живые заказы из Авито. Убрать тестовые заказы и тестовые партии печати?")) removeTestOrders();
-  }
   let report!: ImportReport;
   ordersStore.set((orders) => {
     const merged = mergeAvitoBatch(orders, batch);

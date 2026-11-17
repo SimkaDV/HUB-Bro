@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "@/app/App";
 import { startAvitoBridge } from "@/shared/avito";
 import { batchesStore, serviceOrderStore, startReserveSync } from "@/shared/fulfillment";
+import { dropOldKeys } from "@/shared/lib/cleanup";
 import { startServerSync } from "@/shared/lib/sync";
 import { listingsStore } from "@/shared/listings";
 import { ordersStore } from "@/shared/orders";
@@ -13,7 +14,9 @@ import "@/shared/styles/global.css";
 
 const root = ReactDOM.createRoot(document.getElementById("root")!);
 
-// Сначала данные с сервера (на новом компе — вместо тестовых), потом сверка и экраны.
+// Старые версии хранилищ (до чистого старта) больше не читаем — убираем из браузера.
+dropOldKeys();
+// Сначала данные с сервера (сервер главнее: там пусто — и у нас пусто), потом сверка и экраны.
 // Ключи Авито/Telegram и настройки принтера на сервер не уходят — они свои у каждого браузера.
 await startServerSync([ordersStore, stockStore, batchesStore, listingsStore, serviceOrderStore]);
 // Заказы сверяются со складом сразу и после каждого изменения — на любом экране.

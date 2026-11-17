@@ -107,3 +107,5 @@
   .barText { width: 100%; }
   .notice { white-space: normal; width: calc(100% - 2 * var(--space-4)); }
 }
+
+.empty a { color: var(--text); }

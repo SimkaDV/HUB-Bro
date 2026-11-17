@@ -7,9 +7,9 @@ import { syncProducts } from "./products";
 import { syncReserves } from "./reserve";
 import type { BatchIssue, PrintBatch } from "./types";
 
-// Партии печати и сверка со складом. Пока нет бэкенда — в браузере (localStorage).
+// Партии печати и сверка со складом. Партии хранятся в браузере и на сервере (shared/lib/sync.ts).
 
-const STORAGE_KEY = "hubbro.batches.v1";
+const STORAGE_KEY = "hubbro.batches.v2";
 
 export const batchesStore = createStore<PrintBatch[]>(STORAGE_KEY, () => [], (saved) => saved as PrintBatch[]);
 
@@ -101,28 +101,4 @@ export function markStuck(id: string, issues: BatchIssue[]) {
     ),
   );
   patchBatch(id, { stuckAt: at, printedAt: batch.printedAt ?? at, issues });
-}
-
-/**
- * Убирает тестовые заказы (те, что не пришли из Авито — без `syncedAt`) перед первыми живыми: их резервы
- * возвращаются на полку своих поставок, тестовые партии печати удаляются.
- */
-export function removeTestOrders() {
-  const test = new Set(ordersStore.get().filter((o) => !o.syncedAt).map((o) => o.id));
-  if (test.size === 0) return;
-  // Сначала заказы: иначе сверка успеет снова зарезервировать под них снятые джинсы.
-  ordersStore.set((orders) => orders.filter((o) => !test.has(o.id)));
-  stockStore.set((s) => {
-    const models = structuredClone(s.models);
-    for (const size of models.flatMap((m) => m.sizes)) {
-      for (const unit of size.units.filter((u) => test.has(u.order) && u.status === "reserve")) {
-        const row = size.stock.find((x) => x.batchId === unit.batchId);
-        if (row) row.qty += 1;
-        else size.stock.push({ batchId: unit.batchId, qty: 1 });
-      }
-      size.units = size.units.filter((u) => !(test.has(u.order) && u.status === "reserve"));
-    }
-    return { ...s, models };
-  });
-  batchesStore.set(() => []);
 }

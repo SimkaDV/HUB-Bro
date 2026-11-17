@@ -9,7 +9,7 @@ export type PrinterLink = { state: PrinterLinkState; name?: string };
 
 type Saved = { vendorId: number; productId: number; serialNumber?: string; name: string };
 
-const SAVED_KEY = "hubbro.printer.device.v1";
+const SAVED_KEY = "hubbro.printer.device.v2";
 const CHUNK = 16 * 1024;
 
 const supported = typeof navigator !== "undefined" && "usb" in navigator;
@@ -90,6 +90,23 @@ export async function pairPrinter(): Promise<boolean> {
   localStorage.setItem(SAVED_KEY, JSON.stringify(saved));
   await refresh();
   return true;
+}
+
+/** «Очистить все данные»: забыть выбранный принтер — Chrome снова спросит, к какому подключаться. */
+export async function forgetPrinter() {
+  try {
+    localStorage.removeItem(SAVED_KEY);
+  } catch {
+    // нечего забывать
+  }
+  if (supported) {
+    for (const d of await navigator.usb.getDevices()) {
+      if (d.opened) await d.close().catch(() => {});
+      await d.forget?.().catch(() => {});
+    }
+  }
+  device = null;
+  update({ state: supported ? "notPaired" : "unsupported" });
 }
 
 /** Канал, по которому принтеру шлют данные: bulk OUT, лучше у интерфейса класса «принтер» (7). */

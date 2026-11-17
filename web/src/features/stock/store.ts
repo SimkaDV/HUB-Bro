@@ -4,7 +4,7 @@ import type { DeliveryDraft, DeliveryInput } from "@/shared/stock";
 import { applyDelivery, cancelDelivery } from "./delivery";
 
 // Действия экрана склада. Само состояние общее (shared/stock): его же читает и меняет комплектация.
-// Пока нет бэкенда, оно живёт в браузере (localStorage). Потом здесь будут запросы к API.
+// Хранится в браузере и на сервере (shared/lib/sync.ts).
 
 type SettingsPatch = Partial<Pick<StockState, "models" | "categories" | "display">>;
 
@@ -53,7 +53,6 @@ export function useStockStore() {
       setState((s) => ({ ...s, drafts: s.drafts.filter((d) => d.id !== id) }));
     },
 
-    resetToMock: stockStore.reset,
   };
 }
 

@@ -47,7 +47,9 @@ export function SettingsView({ models, categories, display, change }: Props) {
       </div>
 
       <div className={styles.section} key={section}>
-        {section === "models" && <ModelsSection models={models} categories={categories} change={change} />}
+        {section === "models" && (
+          <ModelsSection models={models} categories={categories} change={change} onAddCategory={() => setSection("categories")} />
+        )}
         {section === "categories" && <CategoriesSection models={models} categories={categories} change={change} />}
         {section === "display" && <DisplaySettingsPanel display={display} change={change} />}
       </div>
@@ -55,7 +57,7 @@ export function SettingsView({ models, categories, display, change }: Props) {
   );
 }
 
-function ModelsSection({ models, categories, change }: Omit<Props, "display">) {
+function ModelsSection({ models, categories, change, onAddCategory }: Omit<Props, "display"> & { onAddCategory: () => void }) {
   const [name, setName] = useState("");
   const [category, setCategory] = useState(categories[0]?.name ?? "");
   const [showArchive, setShowArchive] = useState(false);
@@ -80,6 +82,18 @@ function ModelsSection({ models, categories, change }: Omit<Props, "display">) {
   const card = (m: Model) => (
     <ModelSettingsCard key={m.id} model={m} models={models} categories={categories} change={change} />
   );
+
+  if (categories.length === 0) {
+    return (
+      <div className={styles.firstStep}>
+        <p>
+          Модель всегда в категории: у категории задаются размеры, их получит новая модель. Сначала заведите категорию
+          — например, «Джинсы».
+        </p>
+        <Button onClick={onAddCategory}>Завести категорию</Button>
+      </div>
+    );
+  }
 
   return (
     <>

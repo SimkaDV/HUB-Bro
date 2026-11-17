@@ -1,0 +1,27 @@
+.box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.text { color: var(--text-secondary); }
+
+.danger { color: var(--danger-text); }
+
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-button);
+  background: var(--danger-bg);
+}
+
+.question { color: var(--danger-text); font-weight: 500; }
+
+.actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+
+.dangerSolid { background: var(--danger-text); color: var(--danger-bg); }
+
+.error { color: var(--danger-text); font-size: 14px; }
