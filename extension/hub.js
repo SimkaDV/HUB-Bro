@@ -1,4 +1,4 @@
-// Мост между кабинетом HUB BRO (localhost) и фоном расширения: window.postMessage ⇄ chrome.runtime.
+// Мост между кабинетом HUB BRO (hub-bro.vercel.app или localhost) и фоном расширения: window.postMessage ⇄ chrome.runtime.
 // Кабинет пишет { source: "hubbro-page", type }, расширение отвечает { source: "hubbro-ext", type }.
 
 const VERSION = chrome.runtime.getManifest().version;

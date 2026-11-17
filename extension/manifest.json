@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
   "name": "HUB BRO — заказы Авито",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Собирает заказы из кабинета Авито и передаёт их в кабинет HUB BRO.",
   "permissions": ["storage", "scripting", "tabs"],
-  "host_permissions": ["https://www.avito.ru/*", "https://m.avito.ru/*", "http://localhost:5173/*"],
+  "host_permissions": ["https://www.avito.ru/*", "https://m.avito.ru/*", "https://hub-bro.vercel.app/*", "http://localhost:5173/*"],
   "background": { "service_worker": "background.js" },
   "content_scripts": [
     {
@@ -12,7 +12,7 @@
       "js": ["avito/collect.js", "avito/button.js"]
     },
     {
-      "matches": ["http://localhost:5173/*"],
+      "matches": ["https://hub-bro.vercel.app/*", "http://localhost:5173/*"],
       "js": ["hub.js"],
       "run_at": "document_start"
     }

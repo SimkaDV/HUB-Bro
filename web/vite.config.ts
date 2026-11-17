@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 // Сервер данных на Vercel (web/api/state.ts). Локально: HUBBRO_API=https://<проект>.vercel.app npm run dev —
-// дев-сервер прокидывает /api туда, и localhost работает с теми же данными (заодно переносит свои, если там пусто).
+// дев-сервер прокидывает /api туда, и localhost работает с теми же данными (сервер главнее: свои данные туда не переезжают).
 const api = process.env.HUBBRO_API;
 
 export default defineConfig({

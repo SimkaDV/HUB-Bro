@@ -1,7 +1,8 @@
 // Фон расширения: передаёт пачки заказов в кабинет HUB BRO и собирает заказы по кнопке из кабинета.
 // Описание — docs/EXTENSION.md.
 
-const HUB_URLS = ["http://localhost:5173/*"];
+// Где открыт кабинет: сайт на Vercel и дев-сервер. Тот же список — в manifest.json (host_permissions, content_scripts).
+const HUB_URLS = ["https://hub-bro.vercel.app/*", "http://localhost:5173/*"];
 const AVITO_URLS = ["https://www.avito.ru/*", "https://m.avito.ru/*"];
 
 const hubTabs = () => chrome.tabs.query({ url: HUB_URLS });
