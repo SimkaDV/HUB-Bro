@@ -3,6 +3,7 @@
 export * from "./types";
 export * from "./batches";
 export * from "./queue";
-export { batchesStore, cancelBatch, createBatch, markPrinted, markStuck, removeTestOrders, startReserveSync, useBatches } from "./store";
+export { batchLabels, isPrintable, orderLabel } from "./labels";
+export { batchesStore, cancelBatch, createBatch, markPrinted, markReprinted, markStuck, removeTestOrders, startReserveSync, useBatches } from "./store";
 export { DEFAULT_SERVICE_ORDER, serviceOrderStore, setServiceOrder, useServiceOrder } from "./serviceOrder";
 export { QueueFilter } from "./QueueFilter/QueueFilter";

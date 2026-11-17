@@ -22,6 +22,7 @@ export {
   type PrinterNumberKey,
   type PrinterSettings,
 } from "./settings";
+export { PRINTER_STATUS } from "./status";
 export { pairPrinter, PrinterError, usePrinterLink, type PrinterLink, type PrinterLinkState } from "./usb";
 
 /** Нарисовать бирки и отправить их принтеру одним заданием, в том же порядке. */
