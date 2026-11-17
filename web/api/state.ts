@@ -9,7 +9,13 @@
 import { Redis } from "@upstash/redis";
 
 /** Только эти ключи живут на сервере. Ключи Авито/Telegram и настройки принтера остаются в браузере. */
-const KEYS = new Set(["hubbro.orders.v1", "hubbro.stock.v4", "hubbro.batches.v1", "hubbro.listings.v1"]);
+const KEYS = new Set([
+  "hubbro.orders.v2",
+  "hubbro.stock.v4",
+  "hubbro.batches.v1",
+  "hubbro.listings.v1",
+  "hubbro.picking.services.v1",
+]);
 const REVS = "hubbro:revs";
 const stateKey = (key: string) => `hubbro:state:${key}`;
 
