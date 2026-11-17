@@ -46,17 +46,42 @@
 
 .level + .level { margin-top: var(--space-1); }
 
-.off { opacity: 0.55; }
+.order {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.servicesHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.reset {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.num {
+  min-width: 14px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
 
 .levelName {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   font-size: 15px;
-  cursor: pointer;
 }
-
-.levelName input { width: 18px; height: 18px; accent-color: var(--button); }
 
 .arrows { display: flex; gap: var(--space-1); }
 

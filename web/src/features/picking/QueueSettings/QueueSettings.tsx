@@ -1,7 +1,8 @@
-import { SERVICES, type DeliveryService } from "@/shared/orders";
+import { DEFAULT_SERVICE_ORDER, setServiceOrder } from "@/shared/fulfillment";
+import { SERVICE_LABEL, type DeliveryService } from "@/shared/orders";
 import { compareSizes } from "@/shared/stock";
 import { FilterChip } from "@/shared/ui";
-import { countBy, PRESETS, SORT_LABEL, type QueueConfig, type QueueItem } from "../queue";
+import { countBy, type QueueConfig, type QueueItem } from "../queue";
 import styles from "./QueueSettings.module.css";
 
 type Props = {
@@ -12,18 +13,20 @@ type Props = {
   /** Порядок моделей и размеров — как на складе. */
   modelOrder: string[];
   sizeOrder: (model: string) => string[];
+  /** Порядок служб — общий, меняется здесь же. */
+  serviceOrder: DeliveryService[];
 };
 
 const toggle = <T,>(list: T[], value: T) => (list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
 
-/** Порядок печати (уровни сортировки) и фильтры очереди. */
-export function QueueSettings({ config, onChange, items, modelOrder, sizeOrder }: Props) {
+/** Порядок печати (постоянный, меняется только порядок служб) и фильтры очереди. */
+export function QueueSettings({ config, onChange, items, modelOrder, sizeOrder, serviceOrder }: Props) {
   const move = (index: number, delta: number) => {
-    const levels = [...config.levels];
-    [levels[index], levels[index + delta]] = [levels[index + delta], levels[index]];
-    onChange({ ...config, levels });
+    const next = [...serviceOrder];
+    [next[index], next[index + delta]] = [next[index + delta], next[index]];
+    setServiceOrder(next);
   };
-  const activePreset = PRESETS.find((p) => JSON.stringify(p.levels) === JSON.stringify(config.levels))?.id;
+  const isDefault = serviceOrder.join() === DEFAULT_SERVICE_ORDER.join();
 
   const byModel = countBy(items, (i) => i.order.product);
   const models = modelOrder.filter((m) => byModel.has(m));
@@ -40,37 +43,32 @@ export function QueueSettings({ config, onChange, items, modelOrder, sizeOrder }
     <div className={styles.panel}>
       <div className={styles.block}>
         <span className={styles.caption}>Порядок печати</span>
-        <div className={styles.chips}>
-          {PRESETS.map((p) => (
-            <FilterChip
-              key={p.id}
-              label={p.label}
-              selected={activePreset === p.id}
-              onClick={() => onChange({ ...config, levels: p.levels })}
-            />
-          ))}
+        <p className={styles.order}>
+          Категория → Товар → Размер → Служба. Внутри — срочные сверху: по сроку отгрузки, без срока в конце.
+        </p>
+        <div className={styles.servicesHead}>
+          <span className={styles.caption}>Порядок служб</span>
+          {!isDefault && (
+            <button type="button" className={styles.reset} onClick={() => setServiceOrder(DEFAULT_SERVICE_ORDER)}>
+              По умолчанию
+            </button>
+          )}
         </div>
         <ol className={styles.levels}>
-          {config.levels.map((l, i) => (
-            <li key={l.key} className={`${styles.level} ${l.on ? "" : styles.off}`}>
-              <label className={styles.levelName}>
-                <input
-                  type="checkbox"
-                  checked={l.on}
-                  onChange={() =>
-                    onChange({ ...config, levels: config.levels.map((x) => (x.key === l.key ? { ...x, on: !x.on } : x)) })
-                  }
-                />
-                {SORT_LABEL[l.key]}
-              </label>
+          {serviceOrder.map((s, i) => (
+            <li key={s} className={styles.level}>
+              <span className={styles.levelName}>
+                <span className={styles.num}>{i + 1}</span>
+                {SERVICE_LABEL[s]}
+              </span>
               <span className={styles.arrows}>
-                <button type="button" aria-label={`${SORT_LABEL[l.key]} выше`} disabled={i === 0} onClick={() => move(i, -1)}>
+                <button type="button" aria-label={`${SERVICE_LABEL[s]} выше`} disabled={i === 0} onClick={() => move(i, -1)}>
                   ↑
                 </button>
                 <button
                   type="button"
-                  aria-label={`${SORT_LABEL[l.key]} ниже`}
-                  disabled={i === config.levels.length - 1}
+                  aria-label={`${SERVICE_LABEL[s]} ниже`}
+                  disabled={i === serviceOrder.length - 1}
                   onClick={() => move(i, 1)}
                 >
                   ↓
@@ -111,13 +109,13 @@ export function QueueSettings({ config, onChange, items, modelOrder, sizeOrder }
         )}
         <div className={styles.chips} role="group" aria-label="Службы доставки">
           <FilterChip label="Все службы" selected={config.services.length === 0} onClick={() => onChange({ ...config, services: [] })} />
-          {SERVICES.map((s) => (
+          {serviceOrder.map((s) => (
             <FilterChip
-              key={s.id}
-              label={s.label}
-              count={byService.get(s.id) ?? 0}
-              selected={config.services.includes(s.id)}
-              onClick={() => onChange({ ...config, services: toggle<DeliveryService>(config.services, s.id) })}
+              key={s}
+              label={SERVICE_LABEL[s]}
+              count={byService.get(s) ?? 0}
+              selected={config.services.includes(s)}
+              onClick={() => onChange({ ...config, services: toggle<DeliveryService>(config.services, s) })}
             />
           ))}
         </div>

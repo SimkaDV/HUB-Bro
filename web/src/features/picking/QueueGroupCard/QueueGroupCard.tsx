@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { formatOrderId, SERVICE_LABEL } from "@/shared/orders";
 import { formatTime, isToday } from "@/shared/fulfillment";
-import type { QueueGroup } from "../queue";
+import { isOverdue, type QueueGroup } from "../queue";
 import styles from "./QueueGroupCard.module.css";
 
 type Props = {
@@ -13,6 +13,9 @@ type Props = {
 
 const when = (iso: string) =>
   isToday(iso) ? formatTime(iso) : `${new Date(iso).toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" })}, ${formatTime(iso)}`;
+
+/** «2026-11-18» → «18.11». */
+const shipDay = (date: string) => date.slice(8, 10) + "." + date.slice(5, 7);
 
 /** Группа очереди: заголовок с галочкой и «В партию», строки заказов. */
 export function QueueGroupCard({ group, selected, onSelect, onSend }: Props) {
@@ -46,6 +49,14 @@ export function QueueGroupCard({ group, selected, onSelect, onSend }: Props) {
                 <span className={styles.product}>{o.product}</span>
                 <span className={styles.meta}>
                   №&nbsp;{formatOrderId(o.id)} · {when(o.createdAt)} · {SERVICE_LABEL[o.service]}
+                  {o.shipBy && (
+                    <>
+                      {" · "}
+                      <span className={isOverdue(o.shipBy) ? styles.overdue : undefined}>
+                        {isOverdue(o.shipBy) ? "просрочен, " : ""}до {shipDay(o.shipBy)}
+                      </span>
+                    </>
+                  )}
                 </span>
               </span>
             </label>
