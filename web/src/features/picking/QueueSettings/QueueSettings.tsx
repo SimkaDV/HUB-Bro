@@ -1,7 +1,8 @@
 import { DEFAULT_SERVICE_ORDER, setServiceOrder } from "@/shared/fulfillment";
 import { SERVICE_LABEL, type DeliveryService } from "@/shared/orders";
 import { compareSizes } from "@/shared/stock";
-import { FilterChip } from "@/shared/ui";
+import { useState } from "react";
+import { Collapse, FilterChip } from "@/shared/ui";
 import { countBy, type QueueConfig, type QueueItem } from "../queue";
 import styles from "./QueueSettings.module.css";
 
@@ -21,6 +22,7 @@ const toggle = <T,>(list: T[], value: T) => (list.includes(value) ? list.filter(
 
 /** Порядок печати (постоянный, меняется только порядок служб) и фильтры очереди. */
 export function QueueSettings({ config, onChange, items, modelOrder, sizeOrder, serviceOrder }: Props) {
+  const [servicesOpen, setServicesOpen] = useState(false);
   const move = (index: number, delta: number) => {
     const next = [...serviceOrder];
     [next[index], next[index + delta]] = [next[index + delta], next[index]];
@@ -46,37 +48,50 @@ export function QueueSettings({ config, onChange, items, modelOrder, sizeOrder, 
         <p className={styles.order}>
           Категория → Товар → Размер → Служба. Внутри — срочные сверху: по сроку отгрузки, без срока в конце.
         </p>
-        <div className={styles.servicesHead}>
-          <span className={styles.caption}>Порядок служб</span>
+        <button
+          type="button"
+          className={styles.servicesToggle}
+          aria-expanded={servicesOpen}
+          onClick={() => setServicesOpen(!servicesOpen)}
+        >
+          <span className={styles.servicesSummary}>
+            <span className={styles.caption}>Порядок служб</span>
+            <span>{serviceOrder.map((s) => SERVICE_LABEL[s]).join(" → ")}</span>
+          </span>
+          <span className={`${styles.chevron} ${servicesOpen ? styles.chevronOpen : ""}`} aria-hidden>
+            ▾
+          </span>
+        </button>
+        <Collapse open={servicesOpen} className={styles.servicesBody}>
+          <ol className={styles.levels}>
+            {serviceOrder.map((s, i) => (
+              <li key={s} className={styles.level}>
+                <span className={styles.levelName}>
+                  <span className={styles.num}>{i + 1}</span>
+                  {SERVICE_LABEL[s]}
+                </span>
+                <span className={styles.arrows}>
+                  <button type="button" aria-label={`${SERVICE_LABEL[s]} выше`} disabled={i === 0} onClick={() => move(i, -1)}>
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`${SERVICE_LABEL[s]} ниже`}
+                    disabled={i === serviceOrder.length - 1}
+                    onClick={() => move(i, 1)}
+                  >
+                    ↓
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ol>
           {!isDefault && (
             <button type="button" className={styles.reset} onClick={() => setServiceOrder(DEFAULT_SERVICE_ORDER)}>
               По умолчанию
             </button>
           )}
-        </div>
-        <ol className={styles.levels}>
-          {serviceOrder.map((s, i) => (
-            <li key={s} className={styles.level}>
-              <span className={styles.levelName}>
-                <span className={styles.num}>{i + 1}</span>
-                {SERVICE_LABEL[s]}
-              </span>
-              <span className={styles.arrows}>
-                <button type="button" aria-label={`${SERVICE_LABEL[s]} выше`} disabled={i === 0} onClick={() => move(i, -1)}>
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  aria-label={`${SERVICE_LABEL[s]} ниже`}
-                  disabled={i === serviceOrder.length - 1}
-                  onClick={() => move(i, 1)}
-                >
-                  ↓
-                </button>
-              </span>
-            </li>
-          ))}
-        </ol>
+        </Collapse>
       </div>
 
       <div className={styles.block}>
