@@ -57,7 +57,7 @@ src/shared/lib/sync.ts  синхронизация хранилищ с серв�
 
 | На сервере (общее для всех) | Только в этом браузере |
 |---|---|
-| заказы `hubbro.orders.v1`, склад `hubbro.stock.v4`, партии `hubbro.batches.v1`, объявления `hubbro.listings.v1` | ключи Авито и Telegram `hubbro.connections.v1` (секреты не отдаём открытой ссылке), настройки и выбранный принтер `hubbro.printer.*` (у каждого компа свой), настройка очереди `hubbro.picking.queue.v1`, ключ доступа `hubbro.access.v1` |
+| заказы `hubbro.orders.v1`, склад `hubbro.stock.v4`, партии `hubbro.batches.v1`, объявления `hubbro.listings.v1`, порядок служб в очереди печати `hubbro.picking.services.v1` | ключи Авито и Telegram `hubbro.connections.v1` (секреты не отдаём открытой ссылке), настройки и выбранный принтер `hubbro.printer.*` (у каждого компа свой), фильтры очереди печати `hubbro.picking.queue.v2`, ключ доступа `hubbro.access.v1` |
 
 **Как работает синхронизация** (`startServerSync` в `main.tsx`, до сверки и экранов):
 1. При открытии забираем хранилища с сервера и подставляем вместо браузерных (ждём не дольше 8 секунд) —
@@ -93,3 +93,4 @@ src/shared/lib/sync.ts  синхронизация хранилищ с серв�
 ## Журнал
 
 - 16.11.2026 — сервер на Vercel: функция `/api/state` поверх Upstash Redis, синхронизация хранилищ, ключ доступа.
+- 17.11.2026 — на сервер синхронизируется порядок служб очереди печати `hubbro.picking.services.v1`; фильтры очереди — `hubbro.picking.queue.v2`, в браузере.

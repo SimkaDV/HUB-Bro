@@ -3,3 +3,4 @@
 export * from "./types";
 export * from "./batches";
 export { batchesStore, cancelBatch, createBatch, markPrinted, markStuck, removeTestOrders, startReserveSync, useBatches } from "./store";
+export { DEFAULT_SERVICE_ORDER, serviceOrderStore, setServiceOrder, useServiceOrder } from "./serviceOrder";

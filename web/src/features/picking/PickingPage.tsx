@@ -8,8 +8,9 @@ import {
   isToday,
   orderStage,
   useBatches,
+  useServiceOrder,
 } from "@/shared/fulfillment";
-import { SERVICES, useOrders } from "@/shared/orders";
+import { SERVICE_LABEL, useOrders } from "@/shared/orders";
 import { useStock } from "@/shared/stock";
 import { Button, PageHeader, StatTiles, StatusBadge } from "@/shared/ui";
 import { ProblemList } from "./ProblemList/ProblemList";
@@ -28,12 +29,15 @@ import {
 import styles from "./PickingPage.module.css";
 
 // Настройка очереди — удобство одного браузера, поэтому просто localStorage.
-const CONFIG_KEY = "hubbro.picking.queue.v1";
+const CONFIG_KEY = "hubbro.picking.queue.v2";
 
 function loadConfig(): QueueConfig {
   try {
     const raw = localStorage.getItem(CONFIG_KEY);
-    if (raw) return { ...DEFAULT_CONFIG, ...(JSON.parse(raw) as Partial<QueueConfig>) };
+    if (raw) {
+      const saved = JSON.parse(raw) as Partial<QueueConfig>;
+      return { models: saved.models ?? [], sizes: saved.sizes ?? [], services: saved.services ?? [] };
+    }
   } catch {
     // Нет доступа или мусор — настройка по умолчанию.
   }
@@ -44,6 +48,7 @@ export default function PickingPage() {
   const orders = useOrders();
   const batches = useBatches();
   const { models, categories } = useStock();
+  const serviceOrder = useServiceOrder();
   const [config, setConfig] = useState(loadConfig);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [problemsOpen, setProblemsOpen] = useState(false);
@@ -63,9 +68,12 @@ export default function PickingPage() {
     return () => clearTimeout(id);
   }, [notice]);
 
-  const queue = useMemo(() => buildQueue(orders, batches, models, categories), [orders, batches, models, categories]);
-  const visible = useMemo(() => sortQueue(filterQueue(queue, config), config.levels), [queue, config]);
-  const groups = groupQueue(visible, config.levels);
+  const queue = useMemo(
+    () => buildQueue(orders, batches, models, categories, serviceOrder),
+    [orders, batches, models, categories, serviceOrder],
+  );
+  const visible = useMemo(() => sortQueue(filterQueue(queue, config)), [queue, config]);
+  const groups = groupQueue(visible);
   const visibleIds = new Set(visible.map((i) => i.order.id));
   const picked = [...selected].filter((id) => visibleIds.has(id));
 
@@ -73,7 +81,7 @@ export default function PickingPage() {
   const active = stages.filter((s) => s && s !== "packed").length;
   const inBatches = stages.filter((s) => s === "inBatch" || s === "printed").length;
   const problems = orders.filter((_, i) => stages[i] === "problem");
-  const byProduct = countBy(sortQueue(queue, [{ key: "model", on: true }]), (i) => i.order.product);
+  const byProduct = countBy(sortQueue(queue), (i) => i.order.product);
   const byService = countBy(queue, (i) => i.order.service);
   const printedToday = batches.filter((b) => !b.cancelledAt && isToday(b.printedAt));
   const todayBatches = batches.filter((b) => isToday(b.createdAt));
@@ -117,7 +125,7 @@ export default function PickingPage() {
           {
             label: "ПВЗ",
             value: byService.size,
-            detail: SERVICES.map((s) => `${s.label} ${byService.get(s.id) ?? 0}`).join(" · "),
+            detail: serviceOrder.map((s) => `${SERVICE_LABEL[s]} ${byService.get(s) ?? 0}`).join(" · "),
           },
           {
             label: "Проблемы",
@@ -146,6 +154,7 @@ export default function PickingPage() {
         items={queue}
         modelOrder={models.map((m) => m.name)}
         sizeOrder={(name) => models.find((m) => m.name === name)?.sizes.map((s) => s.size) ?? []}
+        serviceOrder={serviceOrder}
       />
 
       {groups.length === 0 ? (
