@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   DEFAULT_PRINTER,
+  forgetPrinter,
   LABEL_LAYOUTS,
   ORIENTATIONS,
   outOfRange,
@@ -80,6 +81,13 @@ export function PrinterForm({ saved }: { saved: PrinterSettings }) {
     }
   };
 
+  const unpair = async () => {
+    if (!window.confirm("Отключить принтер? Этот браузер забудет все принтеры — потом нажмёшь «Подключить принтер» и выберешь заново.")) return;
+    setPairError("");
+    setTest({ kind: "idle" });
+    await forgetPrinter();
+  };
+
   const testPrint = async () => {
     setTest({ kind: "sending" });
     try {
@@ -138,9 +146,16 @@ export function PrinterForm({ saved }: { saved: PrinterSettings }) {
             <span className={form.hint}>{LINK_HINT[link.state]}</span>
           </span>
           {link.state !== "unsupported" && (
-            <Button variant="secondary" onClick={pair}>
-              {link.state === "notPaired" ? "Подключить принтер" : "Выбрать другой"}
-            </Button>
+            <span className={styles.linkActions}>
+              {link.state !== "notPaired" && (
+                <Button variant="secondary" onClick={unpair}>
+                  Отключить принтер
+                </Button>
+              )}
+              <Button variant="secondary" onClick={pair}>
+                {link.state === "notPaired" ? "Подключить принтер" : "Выбрать другой"}
+              </Button>
+            </span>
           )}
         </div>
         {pairError && <p className={styles.error}>{pairError}</p>}
