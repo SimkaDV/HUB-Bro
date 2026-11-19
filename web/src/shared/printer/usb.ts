@@ -92,7 +92,10 @@ export async function pairPrinter(): Promise<boolean> {
   return true;
 }
 
-/** «Очистить все данные»: забыть выбранный принтер — Chrome снова спросит, к какому подключаться. */
+/**
+ * «Отключить принтер» в настройках и «Очистить все данные»: забыть выбранный принтер и все USB-устройства,
+ * к которым Chrome дал доступ этому сайту. Только в этом браузере — Chrome снова спросит, к какому подключаться.
+ */
 export async function forgetPrinter() {
   try {
     localStorage.removeItem(SAVED_KEY);
@@ -121,13 +124,22 @@ function findOut(d: USBDevice) {
   return candidates.find((c) => c.printer) ?? candidates[0];
 }
 
+const isWindows =
+  typeof navigator !== "undefined" &&
+  /win/i.test((navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform || navigator.userAgent);
+
+/** Принтер забрала система (драйвер) или другая вкладка — текст под Windows и под Mac. */
+const NO_ACCESS = isWindows
+  ? "Нет доступа к принтеру: его держит Windows (на нём стоит драйвер принтера) или другая вкладка кабинета. Закрой другие вкладки. " +
+    "Не помогло — один раз поменяй принтеру драйвер на WinUSB: скачай Zadig (zadig.akeo.ie), в меню Options включи List All Devices, " +
+    "выбери Xprinter, справа WinUSB, нажми Replace Driver, потом переткни принтер и нажми «Подключить принтер» заново."
+  : "Нет доступа к принтеру: его держит другая вкладка кабинета или macOS. Закрой другие вкладки; если принтер добавлен в системные принтеры — удали его оттуда.";
+
 function explain(e: unknown): PrinterError {
   if (e instanceof PrinterError) return e;
   if (e instanceof DOMException) {
-    if (e.name === "SecurityError")
-      return new PrinterError(
-        "Нет доступа к принтеру: его держит другая вкладка кабинета или macOS. Закрой другие вкладки; если принтер добавлен в системные принтеры — удали его оттуда.",
-      );
+    // На Windows занятый драйвером принтер даёт «Access denied» при open или «Unable to claim interface».
+    if (e.name === "SecurityError" || /claim|access denied/i.test(e.message)) return new PrinterError(NO_ACCESS);
     if (e.name === "NetworkError" || e.name === "NotFoundError")
       return new PrinterError("Связь с принтером прервалась. Проверь кабель и питание и попробуй ещё раз.");
     if (e.name === "InvalidStateError") return new PrinterError("Принтер занят. Попробуй ещё раз через пару секунд.");
