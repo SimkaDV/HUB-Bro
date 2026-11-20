@@ -54,5 +54,5 @@ export const StockSettingsContext = createContext<StockSettings>({
 
 export const useStockSettings = () => useContext(StockSettingsContext);
 
-/** Код категории на бирке: заглавные буквы и цифры, до 4 знаков. */
+/** Код модели на бирке: заглавные буквы и цифры, до 4 знаков. */
 export const normalizeCode = (v: string) => v.toUpperCase().replace(/[^0-9A-ZА-ЯЁ]/g, "").slice(0, 4);

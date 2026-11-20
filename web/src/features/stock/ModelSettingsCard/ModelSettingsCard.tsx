@@ -9,6 +9,7 @@ import {
   canHideSize,
   formatThresholds,
   nameTaken,
+  normalizeCode,
   resolveThresholds,
 } from "../settings";
 import { listingsCount, unlinkModel, useListings } from "@/shared/listings";
@@ -30,6 +31,8 @@ export function ModelSettingsCard({ model, models, categories, change }: Props) 
   const [name, setName] = useState(model.name);
   const [confirmDelete, setConfirmDelete] = useState(false);
   useEffect(() => setName(model.name), [model.name]);
+  const [code, setCode] = useState(model.code ?? "");
+  useEffect(() => setCode(model.code ?? ""), [model.code]);
 
   const category = categories.find((c) => c.name === model.category);
   const thresholds = resolveThresholds(model, categories);
@@ -41,6 +44,12 @@ export function ModelSettingsCard({ model, models, categories, change }: Props) 
       ? "Такая модель уже есть"
       : null;
 
+  // Код на бирке уникален среди всех моделей, в том числе архивных: по нему на расклейке понимают, что класть.
+  const codeProblem =
+    code && code !== model.code && models.some((m) => m.id !== model.id && m.code === code)
+      ? "Такой код уже у другой модели"
+      : null;
+
   const patch = (text: string, fn: (m: Model) => Model) =>
     change(text, (s) => ({ models: s.models.map((m) => (m.id === model.id ? fn(m) : m)) }));
 
@@ -48,6 +57,12 @@ export function ModelSettingsCard({ model, models, categories, change }: Props) 
     const next = name.trim();
     if (nameProblem || next === model.name) return setName(model.name);
     patch(`Модель «${model.name}» переименована в «${next}»`, (m) => ({ ...m, name: next }));
+  };
+
+  const commitCode = () => {
+    const prev = model.code ?? "";
+    if (codeProblem || code === prev) return setCode(prev);
+    patch(`«${model.name}»: код на бирке ${prev || "—"} → ${code || "—"}`, ({ code: _, ...m }) => (code ? { ...m, code } : m));
   };
 
   const setSizeOrder = (order: string[], text: string) =>
@@ -58,6 +73,7 @@ export function ModelSettingsCard({ model, models, categories, change }: Props) 
       <button type="button" className={styles.head} aria-expanded={open} onClick={() => setOpen(!open)}>
         <span className={styles.title}>{model.name}</span>
         <span className={styles.meta}>
+          {model.code ? `${model.code} · ` : ""}
           {model.category} · {model.sizes.length - (model.hiddenSizes?.length ?? 0)} разм. · {totalOnHand} шт. ·
           пороги {formatThresholds(thresholds)}
           {model.thresholds ? " (свои)" : ""} · {listingsCount(listings)}
@@ -99,6 +115,25 @@ export function ModelSettingsCard({ model, models, categories, change }: Props) 
               ))}
             </select>
           </label>
+          <div className={styles.nameField}>
+            <Input
+              id={`model-code-${model.id}`}
+              label="Код на бирке"
+              className={styles.onCard}
+              value={code}
+              placeholder="КЛ"
+              onChange={(e) => setCode(normalizeCode(e.target.value))}
+              onBlur={commitCode}
+              onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+            />
+            {codeProblem ? (
+              <span className={styles.problem}>{codeProblem}</span>
+            ) : (
+              <span className={styles.hint}>
+                До 4 букв или цифр, пишется после номера заказа: N338871{code ? `-${code}` : "-КЛ"}
+              </span>
+            )}
+          </div>
         </div>
 
         <section className={styles.section}>
