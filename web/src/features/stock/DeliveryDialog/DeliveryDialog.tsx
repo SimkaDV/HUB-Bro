@@ -95,7 +95,10 @@ export function DeliveryDialog({ models, categories, drafts, onSubmit, onSaveDra
   };
 
   const openDraft = (d: DeliveryDraft) => {
-    const next = { date: d.date, from: d.from, lines: d.lines };
+    // По умолчанию всегда сегодня: дата из черновика остаётся, только если её выбирали руками.
+    const next: DeliveryInput = d.dateSet
+      ? { date: d.date, dateSet: true, from: d.from, lines: d.lines }
+      : { date: todayIso(), from: d.from, lines: d.lines };
     setInput(next);
     setSaved(JSON.stringify(next));
     setDraftId(d.id);
@@ -162,7 +165,7 @@ export function DeliveryDialog({ models, categories, drafts, onSubmit, onSaveDra
                   label="Дата прихода"
                   type="date"
                   value={input.date}
-                  onChange={(e) => update({ date: e.target.value })}
+                  onChange={(e) => update({ date: e.target.value, dateSet: true })}
                 />
                 <Input
                   id="delivery-from"
@@ -306,7 +309,7 @@ export function DeliveryDialog({ models, categories, drafts, onSubmit, onSaveDra
                   Сохранить черновик
                 </Button>
                 <Button onClick={() => setStep("review")} disabled={!ready}>
-                  Проверить
+                  Продолжить
                 </Button>
               </div>
             </>

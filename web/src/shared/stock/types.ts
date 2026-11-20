@@ -120,6 +120,8 @@ export type DeliveryLine = {
 
 export type DeliveryInput = {
   date: string;
+  /** Дату поменяли руками. Нет — черновик откроется с сегодняшней датой. */
+  dateSet?: boolean;
   from: string;
   lines: DeliveryLine[];
 };
