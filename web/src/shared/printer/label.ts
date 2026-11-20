@@ -11,8 +11,8 @@ export type LabelData = {
   /** Модель склада. Печатается только в раскладке «С названием». */
   product: string;
   size: string;
-  /** Код категории на бирке («КЛ»). Нет — номер без приписки. */
-  categoryCode?: string;
+  /** Код модели на бирке («КЛ»). Нет — номер без приписки. */
+  code?: string;
   /** Номер отправления — в штрихкоде, его пикают в ПВЗ. Нет — вместо штрихкода пометка. */
   dispatchNumber?: string;
   /** Служба доставки, подписью: «Авито», «Почта». */
@@ -24,7 +24,7 @@ export const SAMPLE_LABEL: LabelData = {
   orderId: "70000000566033529",
   product: "Джинсы Клёш",
   size: "33L",
-  categoryCode: "КЛ",
+  code: "КЛ",
   dispatchNumber: "8051222733459",
   service: "Авито",
 };
@@ -153,7 +153,7 @@ export async function renderLabel(data: LabelData, settings: PrinterSettings): P
   const oy = (height - BASE_H * k) / 2;
   const layout: LabelLayout = settings.layout;
   const inner = BASE_W - PAD * 2;
-  const number = shortNumber(data.orderId, data.categoryCode);
+  const number = shortNumber(data.orderId, data.code);
 
   // Штрихкод рисуем в точках принтера, без масштаба раскладки.
   drawBarcode(ctx, data.dispatchNumber, width, Math.round(oy + BARCODE_TOP * k), Math.round(BARCODE_H * k), k);

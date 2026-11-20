@@ -85,8 +85,8 @@ export function BatchCard({ batch, orders }: Props) {
     if (sending) return;
     setJob({ kind: "sending", orderId });
     try {
-      const { models, categories } = stockStore.get();
-      const labels = batchLabels(orderId ? [orderId] : batch.orderIds, orders, models, categories);
+      const { models } = stockStore.get();
+      const labels = batchLabels(orderId ? [orderId] : batch.orderIds, orders, models);
       if (labels.length === 0) throw new PrinterError("В партии нечего печатать: заказы отменены или не найдены.");
       await printLabels(labels, printerStore.get());
       if (state === "queued") markPrinted(batch.id);

@@ -10,10 +10,12 @@ import {
   isInputReady,
   isModelVisible,
   lineModelName,
+  linePacks,
   lineProblems,
   lineQty,
   lineTotal,
   shortModelName,
+  sizeQty,
   todayIso,
   unitPrice,
 } from "../delivery";
@@ -93,7 +95,10 @@ export function DeliveryDialog({ models, categories, drafts, onSubmit, onSaveDra
   };
 
   const openDraft = (d: DeliveryDraft) => {
-    const next = { date: d.date, from: d.from, lines: d.lines };
+    // По умолчанию всегда сегодня: дата из черновика остаётся, только если её выбирали руками.
+    const next: DeliveryInput = d.dateSet
+      ? { date: d.date, dateSet: true, from: d.from, lines: d.lines }
+      : { date: todayIso(), from: d.from, lines: d.lines };
     setInput(next);
     setSaved(JSON.stringify(next));
     setDraftId(d.id);
@@ -160,7 +165,7 @@ export function DeliveryDialog({ models, categories, drafts, onSubmit, onSaveDra
                   label="Дата прихода"
                   type="date"
                   value={input.date}
-                  onChange={(e) => update({ date: e.target.value })}
+                  onChange={(e) => update({ date: e.target.value, dateSet: true })}
                 />
                 <Input
                   id="delivery-from"
@@ -231,13 +236,22 @@ export function DeliveryDialog({ models, categories, drafts, onSubmit, onSaveDra
                     </p>
                     <div className={styles.reviewSizes}>
                       {line.sizes
-                        .filter((s) => (line.qty[s] ?? 0) > 0)
+                        .filter((s) => sizeQty(line, s) > 0)
                         .map((s) => (
                           <span key={s} className={styles.reviewSize}>
-                            {s} <b>× {line.qty[s]}</b>
+                            {s} <b>× {sizeQty(line, s)}</b>
                           </span>
                         ))}
                     </div>
+                    {linePacks(line).some((p) => p.count > 0) && (
+                      <p className={styles.reviewMeta}>
+                        Из них пачки:{" "}
+                        {linePacks(line)
+                          .filter((p) => p.count > 0)
+                          .map((p) => `«${p.name}» × ${p.count}`)
+                          .join(", ")}
+                      </p>
+                    )}
                     <p className={styles.reviewTotal}>
                       <b>{lineQty(line)} шт.</b> на {formatRub(lineTotal(line))}
                     </p>
@@ -295,7 +309,7 @@ export function DeliveryDialog({ models, categories, drafts, onSubmit, onSaveDra
                   Сохранить черновик
                 </Button>
                 <Button onClick={() => setStep("review")} disabled={!ready}>
-                  Проверить
+                  Продолжить
                 </Button>
               </div>
             </>
