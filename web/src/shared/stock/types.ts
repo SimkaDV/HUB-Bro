@@ -16,6 +16,8 @@ export type Batch = {
   /** Когда внесли в систему, ISO. */
   addedAt: string;
   cancelledAt?: string;
+  /** Сколько каких пачек было в поставке — для истории. Штуки из них уже лежат в delivered. */
+  packs?: { name: string; count: number }[];
 };
 
 /** Статусы джинсы, у которой уже есть заказ. «На складе» хранится количеством, см. SizeStock.stock. */
@@ -59,7 +61,19 @@ export type Model = {
   hiddenSizes?: string[];
   /** В архиве: не видна на складе и в поставке, в истории остаётся. */
   archived?: boolean;
+  /** Пачки модели: собираются в «+ Поставке», переименовать и удалить — в настройках модели. */
+  packs?: Pack[];
 };
+
+/** Пачка: готовый набор размеров, всегда по одной штуке каждого. Нужна только для ввода поставки. */
+export type Pack = {
+  id: string;
+  name: string;
+  sizes: string[];
+};
+
+/** Пачка в карточке поставки: сколько пачек пришло. fresh — собрана в этой поставке, ещё не у модели. */
+export type DeliveryPack = Pack & { count: number; fresh?: boolean };
 
 export type Category = {
   id: string;
@@ -98,7 +112,10 @@ export type DeliveryLine = {
   /** На сколько штук прибавляют кнопки −/+: 1, 2, 5, 10 или своё. */
   step: number;
   sizes: string[];
+  /** Отдельные штуки по размерам — сверх пачек. */
   qty: Record<string, number>;
+  /** Пачки в карточке. Нет — старый черновик, пачек нет. */
+  packs?: DeliveryPack[];
 };
 
 export type DeliveryInput = {

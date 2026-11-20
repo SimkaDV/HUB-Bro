@@ -314,3 +314,157 @@
   .card { animation: none; }
   .size { transition: none; }
 }
+
+/* Пачки: «Собрать пачку» под ценой, форма сборки, плашки пачек во всю ширину. */
+.packBtn {
+  align-self: flex-start;
+  margin-top: var(--space-1);
+  height: 36px;
+  padding: 0 var(--space-3);
+  border: none;
+  border-radius: var(--radius-button);
+  background: var(--button);
+  color: var(--on-button);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.packBtn:active { transform: scale(0.97); }
+
+.packForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-button);
+  background: var(--bg);
+}
+
+.packForm .addSizeInput { background: var(--card); }
+
+.packFormTitle { font-weight: 600; }
+
+.packFormHint {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.packSizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.packSize {
+  min-width: 52px;
+  height: 36px;
+  padding: 0 var(--space-2);
+  border: none;
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--text-secondary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.packSizeOn { background: var(--button); color: var(--on-button); }
+
+.packFormActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.packCancel {
+  height: 40px;
+  padding: 0 var(--space-3);
+  border: none;
+  border-radius: var(--radius-button);
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.packs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.packsHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.packsHead h4 { font-size: 15px; font-weight: 600; }
+
+.packAdd {
+  height: 32px;
+  padding: 0 var(--space-3);
+  border: none;
+  border-radius: var(--radius-button);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.packAdd:hover { background: var(--button); color: var(--on-button); }
+
+.pack {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-button);
+  background: var(--bg);
+  transition: background 0.15s;
+}
+
+.packText {
+  flex: 1;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.packName { font-size: 15px; }
+.packList { font-size: 13px; color: var(--text-secondary); }
+
+.packStepper { width: 136px; }
+
+/* Ячейка размера: серым — штуки из пачек (минимум), чёрным — отдельные сверху. */
+.sizeValue {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.fromPacks {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+/* Шрифт задаётся на .sizeValue по длине числа (valueFontSize), поле и серое число его наследуют. */
+.stepper .sizeValue input { font-size: inherit; }
+.sizeValue .fromPacks + input { flex: none; min-width: 0; padding: 0 0 0 0.25em; text-align: left; }
+
+.stepper .sizeValue input::placeholder { color: var(--text-secondary); opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pack, .packSize { transition: none; }
+}

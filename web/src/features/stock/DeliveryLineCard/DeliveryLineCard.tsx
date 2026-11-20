@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Input } from "@/shared/ui";
-import { categorySizes, lineQty, lineTotal, unitPrice } from "../delivery";
+import { addPack, categorySizes, linePacks, lineQty, lineTotal, packProblem, packQty, unitPrice } from "../delivery";
 import { compareSizes, formatRub } from "@/shared/stock";
 import type { Category, DeliveryLine, Model } from "@/shared/stock";
 import styles from "./DeliveryLineCard.module.css";
@@ -21,8 +21,12 @@ export function DeliveryLineCard({ line, models, categories, onChange, onRemove 
   const [newSize, setNewSize] = useState("");
   const [customStep, setCustomStep] = useState(STEPS.includes(line.step) ? "" : String(line.step));
   const [confirmClear, setConfirmClear] = useState(false);
+  // Сборка пачки: открыта форма или нет, название и отмеченные размеры.
+  const [packForm, setPackForm] = useState<{ name: string; sizes: string[] } | null>(null);
+  const packs = linePacks(line);
   // «Очистить» обнуляет сумму, шаг и количества; модель и список размеров остаются.
   const hasData = line.total.trim() !== "" || line.step !== 1 || lineQty(line) > 0;
+  const packFormProblem = packForm ? packProblem(line, models, packForm.name, packForm.sizes) : null;
   const model = models.find((m) => m.id === line.modelId);
   const categoryNames = categories.map((c) => c.name);
   const newCategory = line.newModel.category.trim();
@@ -34,6 +38,22 @@ export function DeliveryLineCard({ line, models, categories, onChange, onRemove 
 
   const setQty = (size: string, qty: number) =>
     onChange({ ...line, qty: { ...line.qty, [size]: Math.max(0, Math.min(999, qty)) } });
+
+  const setPackCount = (id: string, count: number) => {
+    const next = packs.map((p) => (p.id === id ? { ...p, count: Math.max(0, Math.min(999, count)) } : p));
+    // Размер пачки, которого нет в карточке (скрыт у модели), возвращаем в сетку — иначе штуки потеряются.
+    const missing = next.filter((p) => p.count > 0).flatMap((p) => p.sizes).filter((s) => !line.sizes.includes(s));
+    const sizes = missing.length ? [...line.sizes, ...new Set(missing)].sort(compareSizes) : line.sizes;
+    onChange({ ...line, sizes, packs: next });
+  };
+
+  const openPackForm = () => setPackForm({ name: "", sizes: [...line.sizes] });
+
+  const submitPack = () => {
+    if (!packForm || packFormProblem) return;
+    onChange(addPack(line, packForm.name, packForm.sizes));
+    setPackForm(null);
+  };
 
   const addSizes = (sizes: string[]) => {
     const fresh = sizes.filter((s) => s && !line.sizes.includes(s));
@@ -100,6 +120,11 @@ export function DeliveryLineCard({ line, models, categories, onChange, onRemove 
           <span className={styles.unit}>
             {unitPrice(line) > 0 ? `≈ ${formatRub(unitPrice(line))} за шт.` : "Цена за штуку посчитается сама"}
           </span>
+          {packs.length === 0 && line.sizes.length > 0 && !packForm && (
+            <button type="button" className={styles.packBtn} onClick={openPackForm}>
+              Собрать пачку
+            </button>
+          )}
         </div>
 
         <div className={styles.stepBlock}>
@@ -145,14 +170,14 @@ export function DeliveryLineCard({ line, models, categories, onChange, onRemove 
               </button>
               {confirmClear && (
                 <div className={styles.popover} role="alertdialog" aria-label="Вы уверены?">
-                  <p>Вы уверены? Сумма и все количества в карточке обнулятся.</p>
+                  <p>Вы уверены? Сумма, пачки и все количества в карточке обнулятся.</p>
                   <div className={styles.popoverActions}>
                     <button
                       type="button"
                       className={styles.popoverYes}
                       onClick={() => {
                         setCustomStep("");
-                        onChange({ ...line, total: "", step: 1, qty: {} });
+                        onChange({ ...line, total: "", step: 1, qty: {}, packs: packs.map((p) => ({ ...p, count: 0 })) });
                         setConfirmClear(false);
                       }}
                     >
@@ -169,12 +194,115 @@ export function DeliveryLineCard({ line, models, categories, onChange, onRemove 
         </div>
       </div>
 
+      {packForm && (
+        <div className={styles.packForm}>
+          <span className={styles.packFormTitle}>Новая пачка</span>
+          <input
+            className={styles.addSizeInput}
+            placeholder="Название, например Стандарт"
+            aria-label="Название пачки"
+            autoFocus
+            value={packForm.name}
+            onChange={(e) => setPackForm({ ...packForm, name: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                submitPack();
+              }
+              if (e.key === "Escape") {
+                e.stopPropagation();
+                setPackForm(null);
+              }
+            }}
+          />
+          <span className={styles.packFormHint}>Размеры в пачке — по одной штуке каждого:</span>
+          <div className={styles.packSizes}>
+            {line.sizes.map((s) => {
+              const on = packForm.sizes.includes(s);
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  aria-pressed={on}
+                  className={`${styles.packSize} ${on ? styles.packSizeOn : ""}`}
+                  onClick={() =>
+                    setPackForm({ ...packForm, sizes: on ? packForm.sizes.filter((x) => x !== s) : [...packForm.sizes, s] })
+                  }
+                >
+                  {s}
+                </button>
+              );
+            })}
+          </div>
+          <div className={styles.packFormActions}>
+            <button type="button" className={styles.addSizeBtn} onClick={submitPack} disabled={!!packFormProblem}>
+              Собрать
+            </button>
+            <button type="button" className={styles.packCancel} onClick={() => setPackForm(null)}>
+              Отмена
+            </button>
+            {packFormProblem && packForm.name.trim() && <span className={styles.packFormHint}>{packFormProblem}</span>}
+          </div>
+        </div>
+      )}
+
+      {packs.length > 0 && (
+        <div className={styles.packs}>
+          <div className={styles.packsHead}>
+            <h4>Пачки</h4>
+            {!packForm && (
+              <button type="button" className={styles.packAdd} onClick={openPackForm}>
+                + Добавить
+              </button>
+            )}
+          </div>
+          {packs.map((p) => (
+            <div key={p.id} className={`${styles.pack} ${p.count > 0 ? styles.filled : ""}`}>
+              <div className={styles.packText}>
+                <span className={styles.packName}>
+                  Пачка · <b>{p.name}</b>
+                </span>
+                <span className={styles.packList}>{p.sizes.join(" · ")}</span>
+              </div>
+              <div className={`${styles.stepper} ${styles.packStepper}`}>
+                <button
+                  type="button"
+                  onClick={() => setPackCount(p.id, p.count - line.step)}
+                  disabled={p.count === 0}
+                  aria-label={`Убавить пачку ${p.name} на ${line.step}`}
+                >
+                  −
+                </button>
+                <input
+                  inputMode="numeric"
+                  aria-label={`Сколько пачек ${p.name}`}
+                  value={p.count || ""}
+                  placeholder="0"
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setPackCount(p.id, Number(e.target.value.replace(/\D/g, "")) || 0)}
+                />
+                <button type="button" onClick={() => setPackCount(p.id, p.count + line.step)} aria-label={`Прибавить пачку ${p.name} на ${line.step}`}>
+                  +
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {line.sizes.length > 0 && (
         <div className={styles.sizes}>
           {line.sizes.map((s) => {
+            // value — отдельные штуки; fromPacks — штуки из пачек, их отсюда не убрать.
             const value = line.qty[s] ?? 0;
+            const fromPacks = packQty(line, s);
+            const shown = value ? (fromPacks > 0 ? `+${value}` : String(value)) : "";
+            const both = fromPacks > 0 && value > 0;
+            // «18 +16» не влезает в ячейку крупным шрифтом — чем длиннее, тем мельче, но всегда целиком.
+            const chars = both ? String(fromPacks).length + shown.length : Math.max(shown.length, String(fromPacks).length);
+            const fontSize = valueFontSize(chars);
             return (
-              <div key={s} className={`${styles.size} ${value > 0 ? styles.filled : ""}`}>
+              <div key={s} className={`${styles.size} ${value + fromPacks > 0 ? styles.filled : ""}`}>
                 <span className={styles.sizeName}>{s}</span>
                 <div className={styles.stepper}>
                   <button
@@ -185,14 +313,24 @@ export function DeliveryLineCard({ line, models, categories, onChange, onRemove 
                   >
                     −
                   </button>
-                  <input
-                    inputMode="numeric"
-                    aria-label={`Сколько пришло ${s}`}
-                    value={value || ""}
-                    placeholder="0"
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => setQty(s, Number(e.target.value.replace(/\D/g, "")) || 0)}
-                  />
+                  <div className={styles.sizeValue} style={{ fontSize }}>
+                    {both && (
+                      <span className={styles.fromPacks} title="Из пачек">
+                        {fromPacks}
+                      </span>
+                    )}
+                    <input
+                      inputMode="numeric"
+                      aria-label={fromPacks > 0 ? `Сколько ${s} отдельно, сверх ${fromPacks} из пачек` : `Сколько пришло ${s}`}
+                      title={fromPacks > 0 ? `${fromPacks} из пачек` : undefined}
+                      value={shown}
+                      // Поле шириной по тексту: серое число и «+N» стоят вплотную по центру.
+                      style={both ? { width: `${shown.length + 0.4}ch` } : undefined}
+                      placeholder={String(fromPacks)}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setQty(s, Number(e.target.value.replace(/\D/g, "")) || 0)}
+                    />
+                  </div>
                   <button type="button" onClick={() => setQty(s, value + line.step)} aria-label={`Прибавить ${s} на ${line.step}`}>
                     +
                   </button>
@@ -243,4 +381,13 @@ export function DeliveryLineCard({ line, models, categories, onChange, onRemove 
       </p>
     </section>
   );
+}
+
+/** Размер шрифта числа в ячейке размера по количеству знаков: 18 px до трёх знаков, дальше мельче. */
+function valueFontSize(chars: number) {
+  if (chars <= 3) return 18;
+  if (chars === 4) return 16;
+  if (chars === 5) return 14;
+  if (chars === 6) return 12;
+  return 11;
 }

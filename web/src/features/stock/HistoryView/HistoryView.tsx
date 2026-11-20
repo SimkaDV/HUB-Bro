@@ -90,6 +90,11 @@ export function HistoryView({ models, log, onCancel }: Props) {
                   </span>
                 ))}
             </div>
+            {batch.packs && batch.packs.length > 0 && (
+              <p className={styles.meta}>
+                Из них пачки: {batch.packs.map((p) => `«${p.name}» × ${p.count}`).join(", ")}
+              </p>
+            )}
             <div className={styles.foot}>
               <span>
                 <b>+{qty} шт.</b> на {formatRub(batch.total)}

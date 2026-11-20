@@ -1,6 +1,6 @@
 import { newId } from "@/shared/lib/id";
 import { compareSizes } from "@/shared/stock";
-import type { Batch, DeliveryInput, DeliveryLine, Model, SizeStock } from "@/shared/stock";
+import type { Batch, DeliveryInput, DeliveryLine, DeliveryPack, Model, Pack, SizeStock } from "@/shared/stock";
 
 // Логика поставок. Описание — docs/WAREHOUSE.md, раздел «Поставки».
 
@@ -36,10 +36,45 @@ export function emptyLine(model?: Model): DeliveryLine {
     // Размеры модели в её порядке, без скрытых.
     sizes: model ? model.sizes.map((s) => s.size).filter((s) => !model.hiddenSizes?.includes(s)) : [],
     qty: {},
+    // Пачки модели сразу в карточке, по нулям.
+    packs: (model?.packs ?? []).map((p) => ({ ...p, count: 0 })),
   };
 }
 
-export const lineQty = (line: DeliveryLine) => line.sizes.reduce((sum, s) => sum + (line.qty[s] ?? 0), 0);
+// Пачки: по одной штуке каждого размера из состава. В размер приходит «пачки + отдельные штуки».
+export const linePacks = (line: DeliveryLine): DeliveryPack[] => line.packs ?? [];
+/** Сколько штук размера дают пачки: из пачек их не убрать, это минимум размера. */
+export const packQty = (line: DeliveryLine, size: string) =>
+  linePacks(line).reduce((sum, p) => sum + (p.sizes.includes(size) ? p.count : 0), 0);
+/** Всего штук размера: пачки + отдельные. */
+export const sizeQty = (line: DeliveryLine, size: string) => packQty(line, size) + (line.qty[size] ?? 0);
+
+export const lineQty = (line: DeliveryLine) => line.sizes.reduce((sum, s) => sum + sizeQty(line, s), 0);
+
+/** Что мешает собрать пачку; null — можно. */
+export function packProblem(line: DeliveryLine, models: Model[], name: string, sizes: string[]): string | null {
+  const model = models.find((m) => m.id === line.modelId);
+  const taken = [...(model?.packs ?? []), ...linePacks(line)].map((p) => p.name.toLowerCase());
+  if (!name.trim()) return "Впишите название пачки";
+  if (taken.includes(name.trim().toLowerCase())) return "Такая пачка уже есть";
+  if (sizes.length < 2) return "Отметьте хотя бы два размера";
+  return null;
+}
+
+/** Новая пачка в карточке: размеры в порядке карточки. */
+export function addPack(line: DeliveryLine, name: string, sizes: string[]): DeliveryLine {
+  const pack: DeliveryPack = { id: newId(), name: name.trim(), sizes: line.sizes.filter((s) => sizes.includes(s)), count: 0, fresh: true };
+  return { ...line, packs: [...linePacks(line), pack] };
+}
+
+/** Пачки, которые надо сохранить у модели: собранные в поставке и которых у неё ещё нет. */
+function packsToSave(model: Model, line: DeliveryLine): Pack[] {
+  const have = model.packs ?? [];
+  const fresh = linePacks(line)
+    .filter((p) => p.fresh && !have.some((h) => h.id === p.id || h.name.toLowerCase() === p.name.toLowerCase()))
+    .map(({ id, name, sizes }) => ({ id, name, sizes }));
+  return [...have, ...fresh];
+}
 /** Сумма за поставку из поля ввода; NaN, если вписано не число. */
 export const lineTotal = (line: DeliveryLine) => Number(line.total.replace(/\s/g, "").replace(",", "."));
 /** Цена за штуку = сумма / штук, до копеек; 0, пока нет суммы или штук. */
@@ -94,8 +129,8 @@ export function findDuplicate(line: DeliveryLine, date: string, models: Model[])
   if (!existing) return null;
   const qty = Object.fromEntries(existing.delivered.map((d) => [d.size, d.qty]));
   const sameQty =
-    line.sizes.filter((s) => (line.qty[s] ?? 0) > 0).every((s) => qty[s] === line.qty[s]) &&
-    existing.delivered.every((d) => line.qty[d.size] === d.qty);
+    line.sizes.filter((s) => sizeQty(line, s) > 0).every((s) => qty[s] === sizeQty(line, s)) &&
+    existing.delivered.every((d) => sizeQty(line, d.size) === d.qty);
   return { batch: existing, sameQty };
 }
 
@@ -123,7 +158,8 @@ export function applyDelivery(models: Model[], input: DeliveryInput, now = new D
       model = { id: newId(), name: line.newModel.name.trim(), category: line.newModel.category.trim(), batches: [], sizes: [] };
       next = [...next, model];
     }
-    const delivered = line.sizes.filter((s) => (line.qty[s] ?? 0) > 0).map((s) => ({ size: s, qty: line.qty[s] }));
+    const delivered = line.sizes.filter((s) => sizeQty(line, s) > 0).map((s) => ({ size: s, qty: sizeQty(line, s) }));
+    const usedPacks = linePacks(line).filter((p) => p.count > 0).map((p) => ({ name: p.name, count: p.count }));
     const batch: Batch = {
       id: newId(),
       name: uniqueBatchName(model, `${shortModelName(model.name)} ${formatDay(input.date)}`),
@@ -133,6 +169,7 @@ export function applyDelivery(models: Model[], input: DeliveryInput, now = new D
       price: unitPrice(line),
       delivered,
       addedAt: now,
+      ...(usedPacks.length ? { packs: usedPacks } : {}),
     };
     const sizes: SizeStock[] = model.sizes.map((s) => ({ ...s }));
     for (const d of delivered) {
@@ -142,7 +179,8 @@ export function applyDelivery(models: Model[], input: DeliveryInput, now = new D
     }
     // Пришли джинсы скрытого размера — размер снова показываем: скрытым может быть только пустой.
     const hiddenSizes = model.hiddenSizes?.filter((s) => !delivered.some((d) => d.size === s));
-    const updated = { ...model, batches: [...model.batches, batch], sizes, hiddenSizes };
+    const packs = packsToSave(model, line);
+    const updated = { ...model, batches: [...model.batches, batch], sizes, hiddenSizes, ...(packs.length ? { packs } : {}) };
     next = next.map((m) => (m.id === updated.id ? updated : m));
   }
   return next;
