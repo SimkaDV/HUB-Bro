@@ -2,8 +2,10 @@
 // (Upstash из маркетплейса Vercel). Описание — docs/ARCHITECTURE.md, «Сервер».
 //
 // GET  /api/state            → { revs: { ключ: номер версии } } — кабинет опрашивает, что поменялось
-// GET  /api/state?key=…      → { value, rev } (value: null, если на сервере пусто)
-// PUT  /api/state?key=…      тело { value } → { rev }
+// GET  /api/state?key=…      → { value, rev, savedAt } (value: null, если на сервере пусто)
+// PUT  /api/state?key=…      тело { value, baseRev } → { rev, savedAt }
+//                            baseRev — версия, с которой кабинет взял данные. На сервере уже новее (кто-то сохранил
+//                            позже) — ничего не пишем, 409 { conflict: true, value, rev, savedAt }: старое не затрёт новое.
 //
 // Если задан ACCESS_KEY — каждый запрос должен прийти с заголовком x-hubbro-key с этим значением.
 import { Redis } from "@upstash/redis";
@@ -17,6 +19,8 @@ const KEYS = new Set([
   "hubbro.picking.services.v2",
 ]);
 const REVS = "hubbro:revs";
+/** Когда сохранили каждый ключ (ISO, по часам сервера — у компов часы могут расходиться). */
+const SAVED = "hubbro:saved";
 const stateKey = (key: string) => `hubbro:state:${key}`;
 
 function redis() {
@@ -47,6 +51,27 @@ function guard(req: Request): Response | null {
   return null;
 }
 
+/**
+ * Проверка версии и запись — одной операцией внутри Redis, чтобы два компа не проскочили между проверкой и записью.
+ * → [1, новая версия] или [0, текущая версия на сервере].
+ */
+const SAVE_IF_FRESH = `
+local cur = tonumber(redis.call("HGET", KEYS[2], ARGV[1]) or "0")
+if tonumber(ARGV[2]) ~= cur then return {0, cur} end
+redis.call("SET", KEYS[1], ARGV[3])
+redis.call("HSET", KEYS[3], ARGV[1], ARGV[4])
+return {1, redis.call("HINCRBY", KEYS[2], ARGV[1], 1)}
+`;
+
+async function read(db: Redis, key: string) {
+  const [value, rev, savedAt] = await Promise.all([
+    db.get<string>(stateKey(key)),
+    db.hget<string>(REVS, key),
+    db.hget<string>(SAVED, key),
+  ]);
+  return { value: value == null ? null : JSON.parse(value), rev: Number(rev ?? 0), savedAt: savedAt ?? null };
+}
+
 export async function GET(req: Request) {
   const denied = guard(req);
   if (denied) return denied;
@@ -58,8 +83,7 @@ export async function GET(req: Request) {
     return json({ revs: toRevs(await db.hgetall(REVS)) });
   }
   if (!KEYS.has(key)) return json({ error: "Неизвестный ключ" }, 400);
-  const [value, rev] = await Promise.all([db.get<string>(stateKey(key)), db.hget<string>(REVS, key)]);
-  return json({ value: value == null ? null : JSON.parse(value), rev: Number(rev ?? 0) });
+  return json(await read(db, key));
 }
 
 export async function PUT(req: Request) {
@@ -70,12 +94,17 @@ export async function PUT(req: Request) {
 
   const key = new URL(req.url).searchParams.get("key");
   if (!key || !KEYS.has(key)) return json({ error: "Неизвестный ключ" }, 400);
-  const body = (await req.json().catch(() => null)) as { value?: unknown } | null;
+  const body = (await req.json().catch(() => null)) as { value?: unknown; baseRev?: unknown } | null;
   if (!body || body.value === undefined) return json({ error: "Пустое тело" }, 400);
+  // Без baseRev (старая вкладка до обновления кабинета) не пишем: не знаем, не затрём ли более новые данные.
+  if (typeof body.baseRev !== "number") return json({ conflict: true, ...(await read(db, key)) }, 409);
 
-  const tx = db.multi();
-  tx.set(stateKey(key), JSON.stringify(body.value));
-  tx.hincrby(REVS, key, 1);
-  const [, rev] = (await tx.exec()) as [unknown, number];
-  return json({ rev });
+  const savedAt = new Date().toISOString();
+  const [ok, rev] = (await db.eval(
+    SAVE_IF_FRESH,
+    [stateKey(key), REVS, SAVED],
+    [key, String(body.baseRev), JSON.stringify(body.value), savedAt],
+  )) as [unknown, unknown];
+  if (Number(ok) !== 1) return json({ conflict: true, ...(await read(db, key)) }, 409);
+  return json({ rev: Number(rev), savedAt });
 }
