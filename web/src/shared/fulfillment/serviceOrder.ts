@@ -4,7 +4,7 @@ import { SERVICES, type DeliveryService } from "@/shared/orders";
 // Порядок служб доставки в очереди печати: в каком порядке раскладываются стопки по службам.
 // Общий для всех компов (синхронизируется с сервером). Описание — docs/PICKING.md, раздел 6.
 
-export const DEFAULT_SERVICE_ORDER: DeliveryService[] = ["yandex", "avito", "cdek", "post", "fivepost"];
+export const DEFAULT_SERVICE_ORDER: DeliveryService[] = ["yandex", "avito", "cdek", "post", "fivepost", "dpd"];
 
 /** Сохранённый порядок + службы, которых в нём нет (добавили новую), в конце. Мусор отбрасывается. */
 function normalize(saved: unknown): DeliveryService[] {

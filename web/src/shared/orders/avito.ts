@@ -10,13 +10,15 @@ export const AVITO_SERVICE: Record<string, DeliveryService> = {
   pochta: "post",
   cdek: "cdek",
   "yandex-market-pvz": "yandex",
+  "five-post": "fivepost",
   "5post": "fivepost",
   fivepost: "fivepost",
+  dpd: "dpd",
 };
 
 /**
- * Служба по данным Авито: сначала точное значение (`provider.value`), потом по названию — у 5Post значение
- * вживую не видели, а Авито может назвать службу по-разному («5Post», «5post-pvz»). Не узнали — undefined.
+ * Служба по данным Авито: сначала точное значение (`provider.value`: у 5Post — `five-post`, у DPD — `dpd`),
+ * потом по названию — Авито может назвать службу по-разному. Не узнали — undefined.
  */
 export function avitoService(value?: string, label?: string): DeliveryService | undefined {
   if (value && AVITO_SERVICE[value]) return AVITO_SERVICE[value];
@@ -24,6 +26,7 @@ export function avitoService(value?: string, label?: string): DeliveryService | 
   if (/5\s*post|five\s*post|пятёрочк|пятерочк/.test(text)) return "fivepost";
   if (/yandex|яндекс/.test(text)) return "yandex";
   if (/cdek|сдэк/.test(text)) return "cdek";
+  if (/dpd|дпд/.test(text)) return "dpd";
   if (/pochta|почта/.test(text)) return "post";
   if (/avito|авито/.test(text)) return "avito";
   return undefined;
