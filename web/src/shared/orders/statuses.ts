@@ -28,6 +28,7 @@ export const SERVICES: { id: DeliveryService; label: string }[] = [
   { id: "post", label: "Почта" },
   { id: "yandex", label: "Яндекс" },
   { id: "fivepost", label: "5Post" },
+  { id: "dpd", label: "DPD" },
 ];
 
 export const SERVICE_LABEL = Object.fromEntries(SERVICES.map((s) => [s.id, s.label])) as Record<DeliveryService, string>;

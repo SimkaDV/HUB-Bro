@@ -17,7 +17,7 @@ export type OrderStatus =
 export type OrderProblem = "noModel" | "noSize" | "noStock";
 
 /** Служба доставки, куда сдаём посылку. Адреса ПВЗ не храним — только службу. */
-export type DeliveryService = "cdek" | "avito" | "post" | "yandex" | "fivepost";
+export type DeliveryService = "cdek" | "avito" | "post" | "yandex" | "fivepost" | "dpd";
 
 export type StatusChange = {
   status: OrderStatus;
