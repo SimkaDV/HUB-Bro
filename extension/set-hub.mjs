@@ -1,7 +1,10 @@
 // Добавить адрес кабинета HUB BRO в расширение (три места: manifest.json host_permissions, content_scripts для hub.js,
 // HUB_URLS в background.js). Повторный запуск ничего не дублирует. Описание — docs/EXTENSION.md, раздел 4.
 //
-//   node hub-bro/extension/set-hub.mjs https://client.tailnet.ts.net [папка-расширения]
+//   node extension/set-hub.mjs https://client.tailnet.ts.net [папка-расширения]
+//
+// Запускать для КОПИИ расширения (папку указать вторым аргументом), а не в папке с кодом — иначе git увидит
+// изменённые файлы и `git pull` при обновлении откажется работать.
 //
 // Папка по умолчанию — та, где лежит этот скрипт. deploy.sh вызывает его для копии расширения конкретного клиента.
 
@@ -19,12 +22,15 @@ const dir = dirArg ?? dirname(fileURLToPath(import.meta.url));
 
 const manifestPath = join(dir, "manifest.json");
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-const addTo = (list) => (list.includes(pattern) ? list : [...list, pattern]);
-manifest.host_permissions = addTo(manifest.host_permissions ?? []);
 const hubScript = (manifest.content_scripts ?? []).find((c) => (c.js ?? []).includes("hub.js"));
 if (!hubScript) throw new Error("в manifest.json нет content_scripts с hub.js");
-hubScript.matches = addTo(hubScript.matches ?? []);
-writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+// Адрес уже есть — файл не трогаем (иначе он «изменён» для git и мешает обновлению через git pull).
+if (!(manifest.host_permissions ?? []).includes(pattern) || !(hubScript.matches ?? []).includes(pattern)) {
+  const addTo = (list) => (list.includes(pattern) ? list : [...list, pattern]);
+  manifest.host_permissions = addTo(manifest.host_permissions ?? []);
+  hubScript.matches = addTo(hubScript.matches ?? []);
+  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+}
 
 const bgPath = join(dir, "background.js");
 const bg = readFileSync(bgPath, "utf8");
