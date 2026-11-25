@@ -1,8 +1,11 @@
 # HUB BRO — версия gri_version: установка на компьютер
 
 Кабинет для продажи джинсов через Авито (склад, заказы, комплектация, печать бирок) вместе с **сервером данных** —
-всё в этой ветке, ничего больше не нужно. Ставится на компьютер с **Windows 10/11**, который будет «сервером»:
-он хранит данные, а кабинет открывается в браузере — на нём же и с других компьютеров и телефонов.
+всё в этой ветке, ничего больше не нужно. Ставится на компьютер с **Windows 10/11** или **Mac**, который будет
+«сервером»: он хранит данные, а кабинет открывается в браузере — на нём же и с других компьютеров и телефонов.
+
+- **Windows** — шаги 1–8 ниже.
+- **Mac** — раздел [«Установка на Mac»](#установка-на-mac).
 
 ```
 HUB-Bro (ветка gri_version)
@@ -12,6 +15,8 @@ HUB-Bro (ветка gri_version)
 ├── extension/  расширение Chrome: заказы из кабинета Авито → в кабинет
 └── docs/       как всё устроено (ARCHITECTURE.md, WAREHOUSE.md, ORDERS.md, …)
 ```
+
+## Установка на Windows
 
 Команды ниже — в **PowerShell от имени администратора** (Пуск → PowerShell → правой кнопкой → «Запуск от имени
 администратора»), если не сказано другое.
@@ -132,7 +137,88 @@ Start-ScheduledTask -TaskName HubBroTray
 - **Склад → «+ Поставка»**: остатки.
 - **Объявления**: привязать каждое объявление к модели склада.
 
-## Обновление
+## Установка на Mac
+
+Всё то же, что на Windows, но команды — в **Терминале** (Программы → Утилиты → Терминал), автозапуск — через
+**launchd**, а значка в трее на Mac нет (он сделан для Windows). Mac должен не засыпать: **Системные настройки →
+Аккумулятор / Энергосбережение → «Не переводить в режим сна автоматически, когда дисплей выключен»** (на ноутбуке —
+держать его на зарядке). Хаб запускается при входе в систему, поэтому пользователь должен оставаться в системе.
+
+Папка установки — один раз в каждом новом окне Терминала:
+```bash
+dir="$HOME/HUB-Bro"
+```
+
+**M1. Node.js 20+ и Git.** Если `node -v` показывает v20+ и `git --version` работает — пропустить. Иначе через
+Homebrew (https://brew.sh):
+```bash
+brew install node git
+```
+(или Node.js — установщиком с https://nodejs.org, Git — `xcode-select --install`).
+
+**M2. Код:**
+```bash
+git clone -b gri_version https://github.com/SimkaDV/HUB-Bro.git "$dir"
+cd "$dir/web" && npm ci && npm run build
+```
+
+**M3. Ключ доступа и магазин** (название — своё):
+```bash
+cd "$dir"
+node -e "require('fs').writeFileSync('data/server/access-key.txt', require('crypto').randomBytes(24).toString('base64url'))"
+node --input-type=module -e "import {empty} from './data/schema/validate.mjs'; import fs from 'node:fs'; fs.mkdirSync('data/store',{recursive:true}); fs.writeFileSync('data/store/shop.json', JSON.stringify({...empty('shop'), name:'Название магазина', stockSource:'warehouse'}))"
+```
+
+**M4. Первый запуск и проверка:**
+```bash
+"$dir/server/run-server.sh"
+```
+Окно занято — это нормально. Открыть **http://127.0.0.1:8790**, ввести ключ (показать — в другом окне Терминала:
+`dir="$HOME/HUB-Bro"; cat "$dir/data/server/access-key.txt"`). Если склад открылся — остановить: в этом окне **Ctrl+C**, затем
+`pkill -f "$dir/data/server/server.mjs"` (сервер данных работает отдельно).
+
+**M5. Автозапуск** (при входе в систему, сам поднимается, если упал):
+```bash
+mkdir -p ~/Library/LaunchAgents
+cat > ~/Library/LaunchAgents/com.hubbro.server.plist <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.hubbro.server</string>
+  <key>ProgramArguments</key><array><string>/bin/bash</string><string>$dir/server/run-server.sh</string></array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+</dict></plist>
+EOF
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.hubbro.server.plist
+```
+Через пару секунд http://127.0.0.1:8790 снова открывается. Управление:
+- **перезапустить** (хаб и сервер данных): `pkill -f "$dir/data/server/server.mjs"; launchctl kickstart -k gui/$(id -u)/com.hubbro.server`
+- **выключить**: `launchctl bootout gui/$(id -u)/com.hubbro.server; pkill -f "$dir/data/server/server.mjs"`
+- **включить снова**: `launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.hubbro.server.plist`
+
+**M6. Tailscale и HTTPS** — как шаг 6 для Windows: аккаунт, MagicDNS и HTTPS Certificates; Tailscale для Mac —
+https://tailscale.com/download/mac (войти в аккаунт). Адрес кабинета:
+```bash
+/Applications/Tailscale.app/Contents/MacOS/Tailscale serve --bg 8790
+```
+(если Tailscale ставили через Homebrew — просто `tailscale serve --bg 8790`).
+
+**M7. Расширение Chrome** — копия и адрес, затем «Загрузить распакованное» как в шаге 7:
+```bash
+ext="$HOME/Documents/HUB BRO extension"
+cp -R "$dir/extension" "$ext"
+node "$dir/extension/set-hub.mjs" https://<имя-компьютера>.<сеть>.ts.net "$ext"
+```
+
+**Обновление на Mac:**
+```bash
+cd "$dir" && git pull && cd web && npm ci && npm run build
+pkill -f "$dir/data/server/server.mjs"; launchctl kickstart -k gui/$(id -u)/com.hubbro.server
+```
+Логи — те же файлы: `server/server.log`, `data/server/data.log` (открыть: `open -a TextEdit "$dir/server/server.log"`).
+
+## Обновление (Windows)
 
 ```powershell
 cd $dir
