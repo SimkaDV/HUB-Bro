@@ -11,7 +11,7 @@ import {
   STATUS_META,
   type Order,
 } from "@/shared/orders";
-import { formatRub, visibleSizes, type Model } from "@/shared/stock";
+import { categoryLabels, formatRub, formatSize, useStock, visibleSizes, type Model } from "@/shared/stock";
 import { Button, Collapse, FilterChip, StatusBadge } from "@/shared/ui";
 import { formatDateTime, formatOrderId, formatTime } from "../filter";
 import styles from "./OrderRow.module.css";
@@ -30,6 +30,8 @@ export function OrderRow({ order, model, inBatch, open, onToggle }: Props) {
   const status = STATUS_META[order.status];
   const number = formatOrderId(order.id);
   const ref = useRef<HTMLLIElement>(null);
+  const { sizeScale, categories } = useStock();
+  const labels = categoryLabels(categories, model?.categoryId);
 
   // Открыли по ссылке «К заказу» — докручиваем до строки.
   useEffect(() => {
@@ -63,7 +65,7 @@ export function OrderRow({ order, model, inBatch, open, onToggle }: Props) {
             <Field label="Заказан" value={formatDateTime(order.createdAt)} />
             <Field label="Товар" value={order.problem === "noModel" ? "Не выбран" : order.product} />
             {order.itemTitle && <Field label="Объявление" value={order.itemTitle} />}
-            <Field label="Размер" value={order.size ?? "Нет — выберите ниже"} />
+            <Field label="Размер" value={order.size ? formatSize(order.size, sizeScale, labels) : "Нет — выберите ниже"} />
             <Field label="Служба доставки" value={SERVICE_LABEL[order.service]} />
             {order.dispatchNumber && <Field label="Номер отправления" value={formatDispatch(order.dispatchNumber)} />}
             {order.shipBy && <Field label="Отгрузить до" value={formatShipBy(order.shipBy)} />}
@@ -166,7 +168,7 @@ function SizeEditor({ order, model, inBatch }: { order: Order; model?: Model; in
         <div className={styles.confirm}>
           <Button
             onClick={() => {
-              setOrderSize(order.id, picked);
+              setOrderSize(order.id, picked, model);
               setPicked(null);
             }}
           >

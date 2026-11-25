@@ -2,6 +2,7 @@ import type { Order, OrderProblem } from "@/shared/orders";
 import type { Model } from "@/shared/stock";
 
 // Сверка заказов со складом. Описание — docs/ORDERS.md, раздел 7, и docs/WAREHOUSE.md, раздел 10.
+// Заказ связан с моделью только по id товара (Order.productId).
 // Чистая функция: на входе заказы и модели, на выходе новые заказы и модели, если что-то поменялось.
 
 const dayMonth = (iso: string) => {
@@ -34,7 +35,7 @@ export function syncReserves(orders: Order[], models: Model[]): { orders: Order[
   };
 
   const findSize = (list: Model[], o: Order) =>
-    list.find((m) => m.name === o.product)?.sizes.find((s) => s.size === o.size);
+    list.find((m) => m.id === o.productId)?.sizes.find((s) => s.size === o.size);
 
   const problems = new Map<string, OrderProblem | undefined>();
   const byAge = [...orders].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
@@ -46,7 +47,7 @@ export function syncReserves(orders: Order[], models: Model[]): { orders: Order[
    * Ищем во всех моделях — товар у заказа мог смениться (перепривязали объявление).
    */
   const release = (o: Order, keep?: string) => {
-    const isStale = (m: Model, s: Model["sizes"][number]) => !(m.name === o.product && s.size === keep) && reservedFor(o)(s);
+    const isStale = (m: Model, s: Model["sizes"][number]) => !(m.id === o.productId && s.size === keep) && reservedFor(o)(s);
     if (!nextModels.some((m) => m.sizes.some((s) => isStale(m, s)))) return;
     for (const m of editable()) {
       for (const s of m.sizes.filter((x) => isStale(m, x))) {
@@ -72,7 +73,7 @@ export function syncReserves(orders: Order[], models: Model[]): { orders: Order[
       continue;
     }
     release(o, o.size);
-    if (!nextModels.some((m) => m.name === o.product)) {
+    if (!o.productId || !nextModels.some((m) => m.id === o.productId)) {
       // Сначала товар: без модели ни размер выбрать, ни джинсу найти.
       problems.set(o.id, o.status === "ordered" ? "noModel" : undefined);
       continue;
@@ -88,7 +89,7 @@ export function syncReserves(orders: Order[], models: Model[]): { orders: Order[
       continue;
     }
 
-    const model = nextModels.find((m) => m.name === o.product);
+    const model = nextModels.find((m) => m.id === o.productId);
     const batchDate = (id: string) => model?.batches.find((b) => b.id === id)?.date ?? "";
     const oldest = size?.stock.filter((x) => x.qty > 0).sort((a, b) => batchDate(a.batchId).localeCompare(batchDate(b.batchId)))[0];
     if (!oldest) {

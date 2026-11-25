@@ -1,14 +1,16 @@
 import { createContext, useContext } from "react";
-import { DEFAULT_DISPLAY, DEFAULT_THRESHOLDS, onHand } from "@/shared/stock";
+import { DEFAULT_DISPLAY, DEFAULT_THRESHOLDS, hasBotData, onHand } from "@/shared/stock";
+
+export { hasBotData } from "@/shared/stock";
 import type { Category, DisplaySettings, Model, Thresholds } from "@/shared/stock";
 
 // Настройки склада: пороги, архив, скрытые размеры, категории. Описание — docs/WAREHOUSE.md, «Настройки».
 
-export { DEFAULT_DISPLAY, ensureCategories } from "@/shared/stock";
+export { DEFAULT_DISPLAY } from "@/shared/stock";
 
 /** Пороги модели: свои, если заданы, иначе категории, иначе по умолчанию. */
 export function resolveThresholds(model: Model, categories: Category[]): Thresholds {
-  return model.thresholds ?? categories.find((c) => c.name === model.category)?.thresholds ?? DEFAULT_THRESHOLDS;
+  return model.thresholds ?? categories.find((c) => c.id === model.categoryId)?.thresholds ?? DEFAULT_THRESHOLDS;
 }
 
 export const formatThresholds = (t: Thresholds) => `${t.lowMax} / ${t.midMax}`;
@@ -25,18 +27,28 @@ export function canHideSize(model: Model, size: string) {
   return !s || (onHand(s) === 0 && s.units.length === 0);
 }
 
-/** Удалить размер можно, только если джинс этого размера никогда не было. Иначе — скрыть. */
+/**
+ * Удалить размер можно, только если джинс этого размера никогда не было и бот не держит на нём размерную сетку
+ * (строка сетки ссылается на размер товара). Иначе — скрыть.
+ */
 export function canDeleteSize(model: Model, size: string) {
   const s = model.sizes.find((x) => x.size === size);
   const everDelivered = model.batches.some((b) => b.delivered.some((d) => d.size === size));
-  return !everDelivered && (!s || (s.stock.length === 0 && s.units.length === 0));
+  const inBotTable = Boolean(model.sizeTable?.rows && size in model.sizeTable.rows);
+  return !everDelivered && !inBotTable && (!s || (s.stock.length === 0 && s.units.length === 0));
 }
 
-/** Удалить модель можно, только если у неё не было ни одной поставки и заказа. Иначе — в архив. */
-export const canDeleteModel = (m: Model) => m.batches.length === 0 && m.sizes.every((s) => s.units.length === 0);
+
+/** Удалить модель можно, только если у неё не было ни одной поставки и заказа и нет данных бота. Иначе — в архив. */
+export const canDeleteModel = (m: Model) =>
+  m.batches.length === 0 && m.sizes.every((s) => s.units.length === 0) && !hasBotData(m);
 
 /** Удалить категорию можно, только если в ней нет моделей (в том числе в архиве). */
-export const canDeleteCategory = (c: Category, models: Model[]) => !models.some((m) => m.category === c.name);
+export const canDeleteCategory = (c: Category, models: Model[]) => !models.some((m) => m.categoryId === c.id);
+
+/** Название категории модели (для подписей). */
+export const categoryName = (m: Model, categories: Category[]) =>
+  categories.find((c) => c.id === m.categoryId)?.name ?? "Без категории";
 
 export const nameTaken = (name: string, names: string[]) =>
   names.some((n) => n.trim().toLowerCase() === name.trim().toLowerCase());

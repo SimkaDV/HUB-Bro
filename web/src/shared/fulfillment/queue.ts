@@ -1,7 +1,7 @@
 import { orderStage } from "./batches";
 import type { PrintBatch } from "./types";
 import { SERVICE_LABEL, type DeliveryService, type Order } from "@/shared/orders";
-import type { Category, Model } from "@/shared/stock";
+import { orderModel, type Category, type Model } from "@/shared/stock";
 
 // Очередь печати: какие заказы в ней, как отсортировать, сгруппировать и отфильтровать.
 // Описание — docs/PICKING.md, раздел 6.
@@ -44,10 +44,10 @@ export function buildQueue(
   return orders
     .filter((o) => orderStage(o, batches) === "queue")
     .map((order) => {
-      const modelIndex = models.findIndex((m) => m.name === order.product);
-      const model = models[modelIndex];
-      const category = model?.category ?? "Без категории";
-      const categoryIndex = categories.findIndex((c) => c.name === category);
+      const model = orderModel(order, models);
+      const modelIndex = model ? models.indexOf(model) : -1;
+      const categoryIndex = model ? categories.findIndex((c) => c.id === model.categoryId) : -1;
+      const category = categories[categoryIndex]?.name ?? "Без категории";
       return {
         order,
         category,

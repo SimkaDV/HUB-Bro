@@ -1,5 +1,5 @@
 import type { StatusTone } from "@/shared/ui";
-import type { Model, SizeStock, SizeSummary, StockLevel, Thresholds, UnitStatus } from "./types";
+import type { Model, SizeLabel, SizeStock, SizeSummary, StockLevel, Thresholds, UnitStatus } from "./types";
 
 // Пороги по умолчанию: ≤ 5 мало, 6–10 норм, больше — много. Настраиваются у категории и модели.
 export const DEFAULT_THRESHOLDS: Thresholds = { lowMax: 5, midMax: 10 };
@@ -28,19 +28,23 @@ export const HIDDEN_STATUSES: UnitStatus[] = ["sent", "delivered", "returnTransi
 export const onHand = (s: SizeStock) => s.stock.reduce((sum, b) => sum + b.qty, 0);
 export const incoming = (s: SizeStock) => s.units.filter((u) => u.status === "returnTransit").length;
 
-const LETTERS = ["XS", "S", "M", "L", "XL", "XXL"];
-
-function sizeKey(size: string): [number, number] {
-  const m = size.match(/^(\d+)?([A-Z]+)?$/);
-  return [m?.[1] ? Number(m[1]) : 0, LETTERS.indexOf(m?.[2] ?? "")];
-}
-
-/** Порядок размеров: 30S, 30M, 31S… и S, M, L, XL. */
+/** Порядок размеров: по номеру (размер — номер строкой, FORMAT.md, правило 4). */
 export function compareSizes(a: string, b: string) {
-  const [an, al] = sizeKey(a);
-  const [bn, bl] = sizeKey(b);
-  return an - bn || al - bl;
+  return Number(a) - Number(b) || a.localeCompare(b);
 }
+
+/** Размер — только номер: «30». Буква живёт в шкале магазина (catalog.sizeScale). */
+export const isSizeNumber = (s: string) => /^\d{1,3}$/.test(s);
+
+/** Размер для людей: «30 (M)». Буква — из категории товара (labels), иначе из шкалы магазина; нет буквы — «30». */
+export function formatSize(size: string, scale: SizeLabel[], labels?: Record<string, string>) {
+  const label = labels?.[size] || scale.find((s) => s.size === size)?.label;
+  return label ? `${size} (${label})` : size;
+}
+
+/** Буквы размеров категории (Category.labels) по id категории. */
+export const categoryLabels = (categories: { id: string; labels?: Record<string, string> }[], categoryId?: string) =>
+  categories.find((c) => c.id === categoryId)?.labels;
 
 function compareAttention(a: SizeSummary, b: SizeSummary) {
   return LEVEL_RANK[a.level] - LEVEL_RANK[b.level] || a.qty - b.qty || compareSizes(a.size, b.size);
@@ -74,3 +78,14 @@ export function modelsByAttention(models: Model[], thresholdsFor: (m: Model) => 
 }
 
 export const formatRub = (n: number) => `${n.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽`;
+
+/** Модель заказа — только по id товара (Order.productId), не по названию: переименование ничего не ломает. */
+export const orderModel = (order: { productId?: string }, models: Model[]) =>
+  order.productId ? models.find((m) => m.id === order.productId) : undefined;
+
+/** У товара есть данные бота: слова, описание, сетка, фото. Такой товар из кабинета не удаляем — только в архив. */
+export const hasBotData = (m: Pick<Model, "match" | "photos" | "chart" | "sizeTable" | "sizeHW" | "botKey" | "description">) =>
+  (m.match?.length ?? 0) > 0 ||
+  (m.photos?.length ?? 0) > 0 ||
+  Boolean(m.chart || m.sizeTable || m.sizeHW || m.botKey) ||
+  Object.values(m.description ?? {}).some(Boolean);

@@ -1,4 +1,4 @@
-// Объявления Авито и их привязка к моделям склада. Описание — docs/LISTINGS.md
+// Объявления Авито и их привязка к товарам каталога. Описание — docs/LISTINGS.md; файл listings.json — avito/data/schema/FORMAT.md
 
 /** Статус объявления на Авито. */
 export type ListingStatus = "active" | "old" | "removed" | "blocked" | "rejected";
@@ -21,8 +21,8 @@ export type Listing = {
   /** Категория Авито: «Одежда, обувь, аксессуары». */
   category: string;
   address: string;
-  /** Модель склада (Model.id), которую продаёт объявление. null — ещё не привязано. */
-  modelId: string | null;
+  /** Товар каталога (Product.id = Model.id), который продаёт объявление. null — ещё не привязано. */
+  productId: string | null;
   /** Когда привязали к модели, ISO. */
   linkedAt?: string;
   stats?: ListingStats;

@@ -1,10 +1,10 @@
 import type { Order } from "@/shared/orders";
-import type { Model } from "@/shared/stock";
+import { orderModel, type Model } from "@/shared/stock";
 
 // Подсказка, как решить проблему заказа. Описание — docs/ORDERS.md, раздел 6.
 
 export function problemHint(o: Order, models: Model[]): string {
-  const model = models.find((m) => m.name === o.product);
+  const model = orderModel(o, models);
   if (!model && o.itemId) return "Объявление не привязано к товару склада —";
   if (!model) return `Модели «${o.product}» нет на складе — заведите её в настройках склада`;
   if (o.problem === "noSize") return "Выберите размер из чата с покупателем";

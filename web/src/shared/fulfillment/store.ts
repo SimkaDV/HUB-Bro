@@ -1,5 +1,5 @@
 import { newId } from "@/shared/lib/id";
-import { createStore } from "@/shared/lib/store";
+import { createFileStore } from "@/shared/lib/store";
 import { listingsStore } from "@/shared/listings";
 import { ordersStore } from "@/shared/orders";
 import { stockStore } from "@/shared/stock";
@@ -7,11 +7,13 @@ import { syncProducts } from "./products";
 import { syncReserves } from "./reserve";
 import type { BatchIssue, PrintBatch } from "./types";
 
-// Партии печати и сверка со складом. Партии хранятся в браузере и на сервере (shared/lib/sync.ts).
+// Партии печати и сверка со складом. Партии хранятся в браузере и на сервере данных — файл printBatches.json
+// (shared/lib/sync.ts, формат — avito/data/schema/FORMAT.md).
 
-const STORAGE_KEY = "hubbro.batches.v2";
-
-export const batchesStore = createStore<PrintBatch[]>(STORAGE_KEY, () => [], (saved) => saved as PrintBatch[]);
+export const batchesStore = createFileStore<PrintBatch[]>("printBatches", 1, () => [], {
+  read: (r) => (Array.isArray(r.batches) ? (r.batches as PrintBatch[]) : []),
+  write: (batches) => ({ batches }),
+});
 
 export const useBatches = batchesStore.use;
 

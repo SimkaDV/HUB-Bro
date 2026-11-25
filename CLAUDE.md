@@ -23,7 +23,7 @@
 ## Работа
 
 - Общение на русском, разговорно.
-- Кабинет: `web/` (Vite + React + TypeScript). Расширение Chrome для заказов Авито: `extension/` (обычный JS, без сборки). Запуск — конфигурация `web` в `.claude/launch.json`. Прод — Vercel (корень `web/`, пуш в `main` выкатывается сам), данные — Upstash Redis через `web/api/state.ts`; см. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), «Сервер».
+- Кабинет: `web/` (Vite + React + TypeScript). Расширение Chrome для заказов Авито: `extension/` (обычный JS, без сборки). Запуск — конфигурация `web` в `.claude/launch.json`. Сервер кабинета — `server/server.mjs` (статика, прокси Авито, `/api` → сервер данных). Данные — только через сервер данных `avito/data/server`, формат — [avito/data/schema/FORMAT.md](../data/schema/FORMAT.md); см. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), «Сервер и данные».
 - Проверка: `npx tsc -b` в `web/`.
 - Интерфейс делаем сразу на сайте, без отдельных макетов: не понравится — откатим.
 - **Склад:** перед любой работой со складом (`web/src/features/stock/`, `web/src/shared/stock/`) сначала читай `docs/WAREHOUSE.md` и не нарушай правила из раздела «Правила». После любого изменения склада (логика, данные, экраны, тексты) обнови нужные разделы документа и его журнал изменений в том же коммите.

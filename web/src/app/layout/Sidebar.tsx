@@ -19,7 +19,8 @@ const time = (iso: string) => {
     : `${d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" })} ${hm}`;
 };
 
-function syncLabel({ state, savedAt, replaced }: SyncInfo) {
+function syncLabel({ state, savedAt, replaced, rejected }: SyncInfo) {
+  if (state === "error" && rejected) return "Сервер не принял данные";
   if (state === "synced" && replaced) return "Данные обновились с другого компьютера";
   if (state === "synced" && savedAt) return `Сохранено на сервере в ${time(savedAt)}`;
   return SYNC_LABEL[state];
@@ -49,7 +50,9 @@ export default function Sidebar() {
         className={`${styles.sync} ${sync === "error" ? styles.syncError : ""}`}
         title={
           sync === "error"
-            ? `${info.error}. Правки сейчас не сохраняются на сервер.`
+            ? info.rejected
+              ? `${info.error}. Эти правки на сервер не сохранены.`
+              : `${info.error}. Правки сейчас не сохраняются на сервер.`
             : info.replaced
               ? "На сервере были данные новее — взяли их, последняя правка здесь не сохранилась"
               : undefined
@@ -57,6 +60,8 @@ export default function Sidebar() {
         role="status"
       >
         {syncLabel(info)}
+        {/* Сервер не принял данные — что именно не так (ошибки проверки формата), чтобы было что исправить. */}
+        {sync === "error" && info.rejected && <span className={styles.syncDetail}>{info.error}</span>}
       </p>
     </aside>
   );

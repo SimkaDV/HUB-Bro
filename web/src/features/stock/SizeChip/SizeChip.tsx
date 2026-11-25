@@ -1,5 +1,5 @@
 import { useStockSettings } from "../settings";
-import type { SizeSummary } from "@/shared/stock";
+import { formatSize, useStock, type SizeSummary } from "@/shared/stock";
 import styles from "./SizeChip.module.css";
 
 type Props = SizeSummary & {
@@ -7,14 +7,19 @@ type Props = SizeSummary & {
   variant?: "compact" | "tag";
   /** Если задан, чип — кнопка: переход к этому размеру. */
   onClick?: () => void;
+  /** Буквы размеров категории товара — для «30 (M)». */
+  labels?: Record<string, string>;
 };
 
-export function SizeChip({ size, qty, incoming, level, variant = "compact", onClick }: Props) {
+export function SizeChip({ size, qty, incoming, level, variant = "compact", onClick, labels }: Props) {
   const { display } = useStockSettings();
+  const { sizeScale } = useStock();
+  // В плитке места мало — только номер; в строке размера — с буквой из шкалы: «30 (M)».
+  const label = variant === "tag" ? formatSize(size, sizeScale, labels) : size;
   const className = `${styles.chip} ${styles[variant]} ${onClick ? styles.clickable : ""}`;
   const content = (
     <>
-      <span>{size}</span>
+      <span>{label}</span>
       <span className={`${styles.qty} ${styles[level]}`}>
         {qty}
         {display.showIncoming && incoming > 0 && <small className={styles.incoming}>+{incoming}</small>}

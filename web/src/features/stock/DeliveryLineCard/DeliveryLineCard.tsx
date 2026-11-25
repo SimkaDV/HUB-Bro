@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Input } from "@/shared/ui";
-import { addPack, categorySizes, linePacks, lineQty, lineTotal, packProblem, packQty, unitPrice } from "../delivery";
-import { compareSizes, formatRub } from "@/shared/stock";
+import { addPack, categorySizes, lineCategory, lineCategoryText, linePacks, lineQty, lineTotal, packProblem, packQty, setLineCategory, unitPrice } from "../delivery";
+import { compareSizes, formatRub, isSizeNumber } from "@/shared/stock";
 import type { Category, DeliveryLine, Model } from "@/shared/stock";
 import styles from "./DeliveryLineCard.module.css";
 
@@ -27,12 +27,12 @@ export function DeliveryLineCard({ line, models, categories, onChange, onRemove 
   // «Очистить» обнуляет сумму, шаг и количества; модель и список размеров остаются.
   const hasData = line.total.trim() !== "" || line.step !== 1 || lineQty(line) > 0;
   const packFormProblem = packForm ? packProblem(line, models, packForm.name, packForm.sizes) : null;
-  const model = models.find((m) => m.id === line.modelId);
+  const model = models.find((m) => m.id === line.productId);
   const categoryNames = categories.map((c) => c.name);
-  const newCategory = line.newModel.category.trim();
+  const newCategory = lineCategory(line, categories);
   const suggested = model
     ? []
-    : (categories.find((c) => c.name === newCategory)?.sizes ?? categorySizes(models, newCategory)).filter(
+    : (newCategory ? (newCategory.sizes.length ? newCategory.sizes : categorySizes(models, newCategory.id)) : []).filter(
         (s) => !line.sizes.includes(s),
       );
 
@@ -60,8 +60,9 @@ export function DeliveryLineCard({ line, models, categories, onChange, onRemove 
     if (fresh.length) onChange({ ...line, sizes: [...line.sizes, ...fresh].sort(compareSizes) });
   };
 
+  // Размер — только номер (FORMAT.md); новый номер сам попадёт в шкалу магазина.
   const submitNewSize = () => {
-    addSizes([newSize.trim().toUpperCase()]);
+    if (isSizeNumber(newSize.trim())) addSizes([newSize.trim()]);
     setNewSize("");
   };
 
@@ -81,8 +82,8 @@ export function DeliveryLineCard({ line, models, categories, onChange, onRemove 
                 label="Название"
                 placeholder="Джинсы Бананы"
                 className={styles.onCard}
-                value={line.newModel.name}
-                onChange={(e) => onChange({ ...line, newModel: { ...line.newModel, name: e.target.value } })}
+                value={line.newProduct.name}
+                onChange={(e) => onChange({ ...line, newProduct: { ...line.newProduct, name: e.target.value } })}
               />
               <Input
                 id={`cat-${line.key}`}
@@ -90,8 +91,8 @@ export function DeliveryLineCard({ line, models, categories, onChange, onRemove 
                 placeholder="Джинсы"
                 list={`cats-${line.key}`}
                 className={styles.onCard}
-                value={line.newModel.category}
-                onChange={(e) => onChange({ ...line, newModel: { ...line.newModel, category: e.target.value } })}
+                value={lineCategoryText(line, categories)}
+                onChange={(e) => onChange(setLineCategory(line, e.target.value, categories))}
               />
               <datalist id={`cats-${line.key}`}>
                 {categoryNames.map((c) => (
@@ -344,10 +345,11 @@ export function DeliveryLineCard({ line, models, categories, onChange, onRemove 
       <div className={styles.addSize}>
         <input
           className={styles.addSizeInput}
-          placeholder="Новый размер, например 35M"
+          placeholder="Новый размер, например 35"
           aria-label="Новый размер"
+          inputMode="numeric"
           value={newSize}
-          onChange={(e) => setNewSize(e.target.value)}
+          onChange={(e) => setNewSize(e.target.value.replace(/\D/g, "").slice(0, 3))}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();

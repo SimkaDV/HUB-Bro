@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { collectFromAvito, useAvitoLink } from "@/shared/avito";
 import { isActive, useBatches } from "@/shared/fulfillment";
 import { GROUPS, useOrders, type OrderGroup } from "@/shared/orders";
-import { useStock } from "@/shared/stock";
+import { orderModel, useStock } from "@/shared/stock";
 import { Button, Card, FilterChip, Input, PageHeader } from "@/shared/ui";
 import { AvitoSync } from "./AvitoSync/AvitoSync";
 import { formatDateTime, groupByDay, inPeriod, matchesQuery, PERIODS, type DateRange, type Period } from "./filter";
@@ -132,7 +132,7 @@ export default function OrdersPage() {
                     <OrderRow
                       key={o.id}
                       order={o}
-                      model={models.find((m) => m.name === o.product)}
+                      model={orderModel(o, models)}
                       inBatch={inBatch.has(o.id)}
                       open={openId === o.id}
                       onToggle={() => setOpenId(openId === o.id ? null : o.id)}

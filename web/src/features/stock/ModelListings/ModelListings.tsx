@@ -12,7 +12,7 @@ type Props = {
 
 /** Объявления Авито, привязанные к модели. Отвязать — крестиком, привязать — в разделе «Объявления». */
 export function ModelListings({ model, change }: Props) {
-  const listings = sortListings(useListings().listings.filter((l) => l.modelId === model.id));
+  const listings = sortListings(useListings().listings.filter((l) => l.productId === model.id));
 
   if (listings.length === 0) {
     return (

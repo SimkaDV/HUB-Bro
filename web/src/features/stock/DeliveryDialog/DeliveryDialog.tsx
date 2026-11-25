@@ -52,7 +52,7 @@ export function DeliveryDialog({ models, categories, drafts, onSubmit, onSaveDra
   const dirty = JSON.stringify(input) !== saved;
   const ready = isInputReady(input, models);
   const visibleModels = models.filter(isModelVisible);
-  const pickable = visibleModels.filter((m) => !input.lines.some((l) => l.modelId === m.id));
+  const pickable = visibleModels.filter((m) => !input.lines.some((l) => l.productId === m.id));
   const suppliers = useMemo(
     () => [...new Set(models.flatMap((m) => m.batches.map((b) => b.from)))].sort(),
     [models],
@@ -229,7 +229,7 @@ export function DeliveryDialog({ models, categories, drafts, onSubmit, onSaveDra
                   <section key={line.key} className={styles.reviewCard}>
                     <div className={styles.reviewHead}>
                       <h3>{name}</h3>
-                      {!line.modelId && <StatusBadge tone="warning">Новая модель</StatusBadge>}
+                      {!line.productId && <StatusBadge tone="warning">Новая модель</StatusBadge>}
                     </div>
                     <p className={styles.reviewMeta}>
                       Поставка «{batchNameFor(line, input.date, models)}» · {formatRub(unitPrice(line))} за шт.

@@ -92,6 +92,7 @@ export default function StockPage() {
             models={store.models}
             categories={store.categories}
             display={store.display}
+            sizeScale={store.sizeScale}
             change={(text, update) => {
               store.changeSettings(text, update);
               notify("Сохранено");

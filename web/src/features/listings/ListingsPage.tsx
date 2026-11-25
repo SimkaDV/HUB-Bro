@@ -157,7 +157,7 @@ export default function ListingsPage() {
             waiting={waiting(l.id)}
             open={openId === l.id}
             onToggle={() => setOpenId(openId === l.id ? null : l.id)}
-            onLink={(modelId) => linkListing(l.id, modelId)}
+            onLink={(productId) => linkListing(l.id, productId)}
           />
         ))}
       </div>

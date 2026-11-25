@@ -3,7 +3,7 @@ import { Collapse, Input } from "@/shared/ui";
 import { SizeListEditor } from "../SizeListEditor/SizeListEditor";
 import { ThresholdEditor } from "../ThresholdEditor/ThresholdEditor";
 import { canDeleteCategory, formatThresholds, nameTaken } from "../settings";
-import { compareSizes } from "@/shared/stock";
+import { compareSizes, useStock } from "@/shared/stock";
 import type { ChangeSettings } from "../store";
 import type { Category, Model } from "@/shared/stock";
 import styles from "./CategorySettingsCard.module.css";
@@ -19,9 +19,10 @@ type Props = {
 export function CategorySettingsCard({ category, categories, models, change }: Props) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(category.name);
+  const scale = useStock().sizeScale;
   useEffect(() => setName(category.name), [category.name]);
 
-  const inCategory = models.filter((m) => m.category === category.name);
+  const inCategory = models.filter((m) => m.categoryId === category.id);
   const withOwn = inCategory.filter((m) => m.thresholds).length;
   const nameProblem = !name.trim()
     ? "Впишите название"
@@ -35,10 +36,9 @@ export function CategorySettingsCard({ category, categories, models, change }: P
   const commitName = () => {
     const next = name.trim();
     if (nameProblem || next === category.name) return setName(category.name);
-    // Модели ссылаются на категорию по названию — переименовываем и у них.
+    // Модели ссылаются на категорию по id — переименование их не трогает.
     change(`Категория «${category.name}» переименована в «${next}»`, (s) => ({
       categories: s.categories.map((c) => (c.id === category.id ? { ...c, name: next } : c)),
-      models: s.models.map((m) => (m.category === category.name ? { ...m, category: next } : m)),
     }));
   };
 
@@ -97,6 +97,8 @@ export function CategorySettingsCard({ category, categories, models, change }: P
             не влияет.
           </p>
           <SizeListEditor
+            scale={scale}
+            labels={category.labels}
             items={category.sizes.map((size) => ({ size, canDelete: true }))}
             onReorder={(order) => setSizes(order, `Категория «${category.name}»: порядок размеров изменён`)}
             onAutoSort={() =>

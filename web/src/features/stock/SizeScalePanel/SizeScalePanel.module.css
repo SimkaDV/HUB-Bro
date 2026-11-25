@@ -1,0 +1,76 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.hint {
+  max-width: 620px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-2);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.size {
+  min-width: 2.5ch;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.label {
+  width: 72px;
+  height: 38px;
+  padding: 0 var(--space-2);
+  border: 2px solid transparent;
+  border-radius: var(--radius-button);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  text-transform: uppercase;
+}
+
+.label:focus { outline: none; border-color: var(--text); }
+
+.preview {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.addForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 2px dashed var(--card);
+  border-radius: var(--radius-card);
+}
+
+.problem {
+  width: 100%;
+  font-size: 13px;
+  color: var(--danger-text);
+}
+
+.cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

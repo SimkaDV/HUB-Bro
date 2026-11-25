@@ -2,7 +2,7 @@
 // Описание — docs/EXTENSION.md.
 
 // Где открыт кабинет: сайт на Vercel и дев-сервер. Тот же список — в manifest.json (host_permissions, content_scripts).
-const HUB_URLS = ["https://hub-bro.vercel.app/*", "http://localhost:5173/*"];
+const HUB_URLS = ["https://hub-bro.vercel.app/*", "https://taylormomsen.tailccfeb1.ts.net/*", "http://localhost:5173/*"];
 const AVITO_URLS = ["https://www.avito.ru/*", "https://m.avito.ru/*"];
 
 const hubTabs = () => chrome.tabs.query({ url: HUB_URLS });

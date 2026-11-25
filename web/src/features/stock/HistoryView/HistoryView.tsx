@@ -63,7 +63,7 @@ export function HistoryView({ models, log, onCancel }: Props) {
             <article key={e.entry.id} className={styles.settingsEntry}>
               <span className={styles.time}>{formatDateTime(e.at)}</span>
               <span className={styles.tag}>Настройки</span>
-              <span>{e.entry.text}</span>
+              <span>{e.entry.source === "bot" ? `Бот: ${e.entry.text}` : e.entry.text}</span>
             </article>
           );
         const { model, batch } = e;

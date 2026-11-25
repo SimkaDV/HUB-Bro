@@ -2,25 +2,13 @@ import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// Сервер данных на Vercel (web/api/state.ts). Локально: HUBBRO_API=https://<проект>.vercel.app npm run dev —
-// дев-сервер прокидывает /api туда, и localhost работает с теми же данными (сервер главнее: свои данные туда не переезжают).
-const api = process.env.HUBBRO_API;
+// Данные — на сервере данных avito (avito/data/server, по умолчанию http://127.0.0.1:8791). `npm run dev` прокидывает
+// /api туда; другой адрес — DATA_URL=http://… npm run dev. Сервер данных не запущен — прокси отвечает ошибкой без
+// JSON, и кабинет работает локально, только в браузере (shared/lib/sync.ts).
+const dataUrl = process.env.DATA_URL ?? "http://127.0.0.1:8791";
 
 export default defineConfig({
-  plugins: [
-    react(),
-    // Без HUBBRO_API сервера данных нет: отвечаем 404, а не отдаём web/api/state.ts как модуль. Кабинет работает локально.
-    {
-      name: "hubbro-no-api",
-      configureServer(server) {
-        if (api) return;
-        server.middlewares.use("/api/", (_req, res) => {
-          res.statusCode = 404;
-          res.end("no api");
-        });
-      },
-    },
-  ],
+  plugins: [react()],
   // В main.tsx ждём данные с сервера через await на верхнем уровне.
   build: { target: "es2022" },
   resolve: {
@@ -28,9 +16,9 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    // Браузер не пускает напрямую к api.avito.ru (CORS) — ходим через дев-сервер. С бэкендом уйдёт на сервер.
+    // Браузер не пускает напрямую к api.avito.ru (CORS) — ходим через дев-сервер (на проде — server/server.mjs).
     proxy: {
-      ...(api ? { "/api": { target: api, changeOrigin: true } } : {}),
+      "/api": { target: dataUrl, changeOrigin: true },
       "/avito": {
         target: "https://api.avito.ru",
         changeOrigin: true,

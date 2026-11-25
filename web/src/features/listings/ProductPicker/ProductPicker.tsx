@@ -8,7 +8,7 @@ type Props = {
   value?: Model;
   models: Model[];
   categories: Category[];
-  onChange: (modelId: string | null) => void;
+  onChange: (productId: string | null) => void;
 };
 
 type Option = { id: string | null; label: string; group?: string };
@@ -16,8 +16,8 @@ type Option = { id: string | null; label: string; group?: string };
 const normalize = (s: string) => s.toLowerCase().replace(/ё/g, "е").trim();
 
 /** Все слова запроса есть в названии модели или категории: «тру» → «Джинсы Трубы», «джинсы клеш» → «Джинсы Клёш». */
-const matches = (m: Model, query: string) => {
-  const hay = normalize(`${m.name} ${m.category}`);
+const matches = (m: Model, categories: Category[], query: string) => {
+  const hay = normalize(`${m.name} ${categories.find((c) => c.id === m.categoryId)?.name ?? ""}`);
   return normalize(query).split(/\s+/).every((w) => hay.includes(w));
 };
 
@@ -33,11 +33,11 @@ export function ProductPicker({ id, value, models, categories, onChange }: Props
   const listRef = useRef<HTMLUListElement>(null);
 
   // Архивные модели не предлагаем, но уже выбранную оставляем, чтобы было видно, что выбрано.
-  const choices = models.filter((m) => (!m.archived || m.id === value?.id) && (!query.trim() || matches(m, query)));
+  const choices = models.filter((m) => (!m.archived || m.id === value?.id) && (!query.trim() || matches(m, categories, query)));
   const options: Option[] = [
     ...categories.flatMap((c) =>
       choices
-        .filter((m) => m.category === c.name)
+        .filter((m) => m.categoryId === c.id)
         .map((m) => ({ id: m.id, label: m.archived ? `${m.name} (в архиве)` : m.name, group: c.name })),
     ),
     ...(value && !query.trim() ? [{ id: null, label: "Отвязать товар" }] : []),

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatSize, isSizeNumber, type SizeLabel } from "@/shared/stock";
 import styles from "./SizeListEditor.module.css";
 
 export type SizeListItem = {
@@ -11,6 +12,10 @@ export type SizeListItem = {
 
 type Props = {
   items: SizeListItem[];
+  /** Шкала магазина: рядом с номером показываем букву — «30 (M)». */
+  scale: SizeLabel[];
+  /** Буквы размеров категории (главнее шкалы). */
+  labels?: Record<string, string>;
   onReorder: (sizes: string[]) => void;
   onAutoSort: () => void;
   onAdd: (size: string) => void;
@@ -20,7 +25,7 @@ type Props = {
 };
 
 /** Размеры с перетаскиванием порядка, скрытием, удалением и добавлением. */
-export function SizeListEditor({ items, onReorder, onAutoSort, onAdd, onDelete, onToggleHidden }: Props) {
+export function SizeListEditor({ items, scale, labels, onReorder, onAutoSort, onAdd, onDelete, onToggleHidden }: Props) {
   const [drag, setDrag] = useState<{ from: string; order: string[] } | null>(null);
   const [newSize, setNewSize] = useState("");
   const bySize = new Map(items.map((i) => [i.size, i]));
@@ -41,8 +46,9 @@ export function SizeListEditor({ items, onReorder, onAutoSort, onAdd, onDelete, 
   };
 
   const submit = () => {
-    const size = newSize.trim().toUpperCase();
-    if (size && !bySize.has(size)) onAdd(size);
+    // Размер — только номер (FORMAT.md): новый номер сам попадёт в шкалу магазина, без буквы.
+    const size = newSize.trim();
+    if (isSizeNumber(size) && !bySize.has(size)) onAdd(size);
     setNewSize("");
   };
 
@@ -69,7 +75,7 @@ export function SizeListEditor({ items, onReorder, onAutoSort, onAdd, onDelete, 
               <span className={styles.handle} aria-hidden="true">
                 ⋮⋮
               </span>
-              <span className={styles.size}>{size}</span>
+              <span className={styles.size}>{formatSize(size, scale, labels)}</span>
               {onToggleHidden && (
                 <button
                   type="button"
@@ -102,10 +108,11 @@ export function SizeListEditor({ items, onReorder, onAutoSort, onAdd, onDelete, 
       <div className={styles.actions}>
         <input
           className={styles.input}
-          placeholder="Новый размер"
+          placeholder="Новый размер, номер"
           aria-label="Новый размер"
+          inputMode="numeric"
           value={newSize}
-          onChange={(e) => setNewSize(e.target.value)}
+          onChange={(e) => setNewSize(e.target.value.replace(/\D/g, "").slice(0, 3))}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();

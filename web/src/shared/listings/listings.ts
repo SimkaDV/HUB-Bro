@@ -16,7 +16,7 @@ export function mergeListings(current: Listing[], fetched: FetchedListing[], now
     const old = byId.get(f.id);
     return old
       ? { ...old, ...f, stats: f.stats ?? old.stats, syncedAt: now, goneAt: undefined }
-      : { ...f, modelId: null, firstSeenAt: now, syncedAt: now };
+      : { ...f, productId: null, firstSeenAt: now, syncedAt: now };
   });
   const seen = new Set(fetched.map((f) => f.id));
   const gone = current.filter((l) => !seen.has(l.id)).map((l) => (l.goneAt ? l : { ...l, goneAt: now }));
@@ -38,7 +38,7 @@ export const isActive = (l: Listing) => !l.goneAt && l.status === "active";
 
 /** Модель, к которой привязано объявление. Модель удалили — считаем непривязанным. */
 export function linkedModel<M extends { id: string }>(l: Listing, models: M[]): M | undefined {
-  return l.modelId ? models.find((m) => m.id === l.modelId) : undefined;
+  return l.productId ? models.find((m) => m.id === l.productId) : undefined;
 }
 
 /**

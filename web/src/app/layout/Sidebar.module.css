@@ -66,3 +66,12 @@
 }
 
 .syncError { color: var(--danger-text); font-weight: 600; }
+
+.syncDetail {
+  display: block;
+  margin-top: 4px;
+  font-weight: 400;
+  max-height: 120px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+}

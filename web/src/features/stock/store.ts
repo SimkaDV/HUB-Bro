@@ -1,12 +1,12 @@
 import { newId } from "@/shared/lib/id";
-import { ensureCategories, stockStore, useStock, type StockState } from "@/shared/stock";
+import { hubLogEntry, LOG_LIMIT, stockStore, useStock, type StockState } from "@/shared/stock";
 import type { DeliveryDraft, DeliveryInput } from "@/shared/stock";
 import { applyDelivery, cancelDelivery } from "./delivery";
 
 // Действия экрана склада. Само состояние общее (shared/stock): его же читает и меняет комплектация.
-// Хранится в браузере и на сервере (shared/lib/sync.ts).
+// Хранится в браузере и на сервере данных (catalog / stock / hub / log, см. shared/stock/store.ts).
 
-type SettingsPatch = Partial<Pick<StockState, "models" | "categories" | "display">>;
+type SettingsPatch = Partial<Pick<StockState, "models" | "categories" | "display" | "sizeScale">>;
 
 const setState = stockStore.set;
 
@@ -17,15 +17,12 @@ export function useStockStore() {
     ...state,
 
     addDelivery(input: DeliveryInput, draftId?: string) {
-      setState((s) => {
-        const models = applyDelivery(s.models, input);
-        return {
-          ...s,
-          models,
-          categories: ensureCategories(s.categories, models),
-          drafts: s.drafts.filter((d) => d.id !== draftId),
-        };
-      });
+      setState((s) => ({
+        ...s,
+        ...applyDelivery(s, input),
+        // Не из черновика — черновики не трогаем (иначе зря перепишется hub.json).
+        drafts: draftId ? s.drafts.filter((d) => d.id !== draftId) : s.drafts,
+      }));
     },
 
     cancelDelivery(modelId: string, batchId: string) {
@@ -37,7 +34,7 @@ export function useStockStore() {
       setState((s) => ({
         ...s,
         ...update(s),
-        log: [{ id: newId(), at: new Date().toISOString(), text }, ...s.log],
+        log: [hubLogEntry(newId(), text), ...s.log].slice(0, LOG_LIMIT),
       }));
     },
 

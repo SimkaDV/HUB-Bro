@@ -1,6 +1,7 @@
 // Заказы нужны нескольким разделам (заказы, комплектация, пульт, склад), поэтому живут в shared.
-// Хранятся в браузере и на сервере (shared/lib/sync.ts); по умолчанию пусто, приходят из расширения Авито.
-import { createStore } from "@/shared/lib/store";
+// Хранятся в браузере и на сервере данных — файл orders.json (shared/lib/sync.ts); по умолчанию пусто,
+// приходят из расширения Авито.
+import { createFileStore } from "@/shared/lib/store";
 import type { Order } from "./types";
 
 export {
@@ -19,9 +20,10 @@ export { AVITO_SERVICE, AVITO_STATUS, applyAvitoStatus, avitoService, type Avito
 export { mergeAvitoBatch, parseAvitoBatch, parseShipBy, type AvitoBatch, type AvitoOrder, type ImportReport } from "./avitoImport";
 export type { DeliveryService, Order, OrderProblem, OrderStatus, StatusChange } from "./types";
 
-const STORAGE_KEY = "hubbro.orders.v3";
-
-export const ordersStore = createStore<Order[]>(STORAGE_KEY, () => [], (saved) => saved as Order[]);
+export const ordersStore = createFileStore<Order[]>("orders", 1, () => [], {
+  read: (r) => (Array.isArray(r.orders) ? (r.orders as Order[]) : []),
+  write: (orders) => ({ orders }),
+});
 
 export const useOrders = ordersStore.use;
 
@@ -29,10 +31,18 @@ export const useOrders = ordersStore.use;
  * Размер руками, пока нет бота Гришки (ORDERS.md, раздел 6). Только у «Заказан»; заказ в партии на пульте
  * не трогаем — это проверяет экран. Резерв (и снятие старого) дальше делает сверка.
  */
-export function setOrderSize(id: string, size: string) {
+export function setOrderSize(id: string, size: string, product?: { id: string; name: string }) {
   ordersStore.set((orders) =>
     orders.map((o) =>
-      o.id === id && o.status === "ordered" && o.size !== size ? { ...o, size, manualSize: o.manualSize ?? { original: o.size } } : o,
+      o.id === id && o.status === "ordered" && o.size !== size
+        ? {
+            ...o,
+            size,
+            manualSize: o.manualSize ?? { original: o.size },
+            // Размер выбрали из размеров товара — связь с ним по id (FORMAT.md, Order.productId).
+            ...(product ? { productId: product.id, product: product.name } : {}),
+          }
+        : o,
     ),
   );
 }

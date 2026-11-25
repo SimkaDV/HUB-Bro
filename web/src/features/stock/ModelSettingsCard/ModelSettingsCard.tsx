@@ -8,12 +8,13 @@ import {
   canDeleteSize,
   canHideSize,
   formatThresholds,
+  hasBotData,
   nameTaken,
   normalizeCode,
   resolveThresholds,
 } from "../settings";
 import { listingsCount, unlinkModel, useListings } from "@/shared/listings";
-import { compareSizes, onHand } from "@/shared/stock";
+import { compareSizes, formatSize, onHand, useStock } from "@/shared/stock";
 import type { ChangeSettings } from "../store";
 import type { Category, Model, Pack } from "@/shared/stock";
 import styles from "./ModelSettingsCard.module.css";
@@ -34,10 +35,11 @@ export function ModelSettingsCard({ model, models, categories, change }: Props) 
   const [code, setCode] = useState(model.code ?? "");
   useEffect(() => setCode(model.code ?? ""), [model.code]);
 
-  const category = categories.find((c) => c.name === model.category);
+  const category = categories.find((c) => c.id === model.categoryId);
+  const scale = useStock().sizeScale;
   const thresholds = resolveThresholds(model, categories);
   const totalOnHand = model.sizes.reduce((s, x) => s + onHand(x), 0);
-  const listings = useListings().listings.filter((l) => l.modelId === model.id).length;
+  const listings = useListings().listings.filter((l) => l.productId === model.id).length;
   const nameProblem = !name.trim()
     ? "Впишите название"
     : name.trim() !== model.name && nameTaken(name, models.map((m) => m.name))
@@ -74,7 +76,7 @@ export function ModelSettingsCard({ model, models, categories, change }: Props) 
         <span className={styles.title}>{model.name}</span>
         <span className={styles.meta}>
           {model.code ? `${model.code} · ` : ""}
-          {model.category} · {model.sizes.length - (model.hiddenSizes?.length ?? 0)} разм. · {totalOnHand} шт. ·
+          {category?.name ?? "Без категории"} · {model.sizes.length - (model.hiddenSizes?.length ?? 0)} разм. · {totalOnHand} шт. ·
           пороги {formatThresholds(thresholds)}
           {model.thresholds ? " (свои)" : ""} · {listingsCount(listings)}
         </span>
@@ -102,14 +104,15 @@ export function ModelSettingsCard({ model, models, categories, change }: Props) 
             <select
               id={`model-cat-${model.id}`}
               className={styles.select}
-              value={model.category}
+              value={model.categoryId}
               onChange={(e) => {
-                const next = e.target.value;
-                patch(`«${model.name}»: категория ${model.category} → ${next}`, (m) => ({ ...m, category: next }));
+                const next = categories.find((c) => c.id === e.target.value);
+                if (!next) return;
+                patch(`«${model.name}»: категория ${category?.name ?? "—"} → ${next.name}`, (m) => ({ ...m, categoryId: next.id }));
               }}
             >
               {categories.map((c) => (
-                <option key={c.id} value={c.name}>
+                <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
               ))}
@@ -185,6 +188,8 @@ export function ModelSettingsCard({ model, models, categories, change }: Props) 
             Удалить — только размер, которого никогда не было в поставках.
           </p>
           <SizeListEditor
+            scale={scale}
+            labels={categories.find((c) => c.id === model.categoryId)?.labels}
             items={model.sizes.map((s) => ({
               size: s.size,
               hidden: model.hiddenSizes?.includes(s.size),
@@ -201,7 +206,7 @@ export function ModelSettingsCard({ model, models, categories, change }: Props) 
               )
             }
             onAdd={(size) =>
-              patch(`«${model.name}»: добавлен размер ${size}`, (m) => ({
+              patch(`«${model.name}»: добавлен размер ${formatSize(size, scale, categories.find((c) => c.id === model.categoryId)?.labels)}`, (m) => ({
                 ...m,
                 sizes: [...m.sizes, { size, stock: [], units: [] }],
               }))
@@ -304,7 +309,11 @@ export function ModelSettingsCard({ model, models, categories, change }: Props) 
               </button>
             ))}
           {!canDeleteModel(model) && (
-            <span className={styles.note}>У модели есть поставки, поэтому её можно только убрать в архив.</span>
+            <span className={styles.note}>
+              {hasBotData(model)
+                ? "У модели есть данные бота (описание, сетка, фото), поэтому её можно только убрать в архив."
+                : "У модели есть поставки, поэтому её можно только убрать в архив."}
+            </span>
           )}
         </div>
       </Collapse>

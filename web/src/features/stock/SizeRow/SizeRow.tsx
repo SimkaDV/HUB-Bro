@@ -3,7 +3,7 @@ import { Collapse, StatusBadge } from "@/shared/ui";
 import { SizeChip } from "../SizeChip/SizeChip";
 import { UnitRow } from "../UnitRow/UnitRow";
 import { useStockSettings } from "../settings";
-import { formatRub, HIDDEN_STATUSES, summarize, VISIBLE_STATUSES } from "@/shared/stock";
+import { categoryLabels, formatRub, HIDDEN_STATUSES, summarize, useStock, VISIBLE_STATUSES } from "@/shared/stock";
 import type { Model, SizeStock, Unit, UnitStatus } from "@/shared/stock";
 import styles from "./SizeRow.module.css";
 
@@ -23,6 +23,7 @@ function byStatus(units: Unit[], order: UnitStatus[]) {
 }
 
 export function SizeRow({ model, sizeStock, focusNonce }: Props) {
+  const labels = categoryLabels(useStock().categories, model.categoryId);
   const [open, setOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [flash, setFlash] = useState(false);
@@ -57,7 +58,7 @@ export function SizeRow({ model, sizeStock, focusNonce }: Props) {
   ].filter(Boolean);
 
   const unitRow = (u: Unit) => (
-    <UnitRow key={u.order} unit={u} batch={batch(u.batchId)} modelName={model.name} size={sizeStock.size} />
+    <UnitRow key={u.order} unit={u} batch={batch(u.batchId)} modelName={model.name} size={sizeStock.size} labels={labels} />
   );
 
   return (
@@ -68,7 +69,7 @@ export function SizeRow({ model, sizeStock, focusNonce }: Props) {
         aria-expanded={open}
         onClick={() => setOpen(!open)}
       >
-        <SizeChip variant="tag" {...summarize(sizeStock, thresholdsFor(model))} />
+        <SizeChip variant="tag" labels={labels} {...summarize(sizeStock, thresholdsFor(model))} />
         <Chevron up={open} />
         {summary.length > 0 && <span className={styles.summary}>{summary.join(" · ")}</span>}
       </button>

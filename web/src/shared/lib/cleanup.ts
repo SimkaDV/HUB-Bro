@@ -1,27 +1,22 @@
-// Чистый старт (18.11.2026): ключи хранилищ подняли, старые версии — тестовые и прежние данные — больше не читаем.
-// Чтобы они не лежали в браузере мусором, при запуске удаляем их. Ключ доступа к серверу не трогаем.
-const OLD_KEYS = [
-  "hubbro.orders.v1",
-  "hubbro.orders.v2",
-  "hubbro.stock.v1",
-  "hubbro.stock.v2",
-  "hubbro.stock.v3",
-  "hubbro.stock.v4",
-  "hubbro.batches.v1",
-  "hubbro.listings.v1",
-  "hubbro.picking.services.v1",
-  "hubbro.picking.queue.v1",
-  "hubbro.picking.queue.v2",
-  "hubbro.picking.queue.v3",
-  "hubbro.connections.v1",
-  "hubbro.printer.v1",
-  "hubbro.printer.v2",
-  "hubbro.printer.device.v1",
-];
+// Старые версии хранилищ больше не читаем. Чтобы они не лежали в браузере мусором, при запуске удаляем их.
+// 25.11.2026: данные переехали в файлы сервера данных avito (catalog, stock, …) — в браузере они лежат под
+// hubbro.data.<файл>, поэтому все старые hubbro.<что-то>.vN удаляются. Остаются ключ доступа к серверу,
+// настройки принтера, подключения (ключи Авито/Telegram) и выбор «Что печатать» — они свои у каждого браузера.
+const KEEP = new Set([
+  "hubbro.access.v1",
+  "hubbro.printer.v3",
+  "hubbro.printer.device.v2",
+  "hubbro.connections.v2",
+  "hubbro.picking.queue.v4",
+]);
+
+const OLD = /^hubbro\.[a-z.-]+\.v\d+$/i;
 
 export function dropOldKeys() {
   try {
-    OLD_KEYS.forEach((k) => localStorage.removeItem(k));
+    Object.keys(localStorage)
+      .filter((k) => OLD.test(k) && !KEEP.has(k))
+      .forEach((k) => localStorage.removeItem(k));
   } catch {
     // без localStorage — нечего удалять
   }

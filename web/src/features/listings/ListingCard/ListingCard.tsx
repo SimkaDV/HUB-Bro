@@ -16,7 +16,7 @@ type Props = {
   waiting: number;
   open: boolean;
   onToggle: () => void;
-  onLink: (modelId: string | null) => void;
+  onLink: (productId: string | null) => void;
 };
 
 /** Карточка объявления: статус, цена, название, выбор товара. По клику раскрываются подробности. */

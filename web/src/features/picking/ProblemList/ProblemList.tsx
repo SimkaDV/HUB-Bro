@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { chatUrl, formatOrderId, PROBLEM_LABEL, SERVICE_LABEL, setOrderSize, type Order } from "@/shared/orders";
-import { visibleSizes, type Model } from "@/shared/stock";
+import { orderModel, visibleSizes, type Model } from "@/shared/stock";
 import { Button, Collapse, FilterChip, StatusBadge } from "@/shared/ui";
 import { problemHint } from "../problems";
 import styles from "./ProblemList.module.css";
@@ -75,7 +75,7 @@ export function ProblemList({ orders, models, open, onToggle }: Props) {
 /** Размер руками, пока нет бота Гришки: размеры модели со склада, рядом — сколько на полке. Клик выбирает, кнопка сохраняет. */
 function SizePicker({ order, models }: { order: Order; models: Model[] }) {
   const [picked, setPicked] = useState<string | null>(null);
-  const model = models.find((m) => m.name === order.product);
+  const model = orderModel(order, models);
   if (!model) return null;
   return (
     <>
@@ -92,7 +92,7 @@ function SizePicker({ order, models }: { order: Order; models: Model[] }) {
       </div>
       {picked && (
         <div className={styles.sizes}>
-          <Button onClick={() => setOrderSize(order.id, picked)}>Поставить {picked}</Button>
+          <Button onClick={() => setOrderSize(order.id, picked, model)}>Поставить {picked}</Button>
           <Button variant="secondary" onClick={() => setPicked(null)}>
             Отмена
           </Button>

@@ -5,3 +5,9 @@ dist/
 *.tsbuildinfo
 .vercel
 .env*.local
+server/access-key.txt
+server/server.log
+# data/ — формат и сервер данных avito (в avito это соседняя папка); данные магазина, ключи и логи не выкладываются
+data/store/
+data/server/access-key.txt
+*.log

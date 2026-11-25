@@ -1,6 +1,6 @@
 import { newId } from "@/shared/lib/id";
-import { compareSizes } from "@/shared/stock";
-import type { Batch, DeliveryInput, DeliveryLine, DeliveryPack, Model, Pack, SizeStock } from "@/shared/stock";
+import { compareSizes, DEFAULT_THRESHOLDS, newCategoryId, newModel } from "@/shared/stock";
+import type { Batch, Category, DeliveryInput, DeliveryLine, DeliveryPack, Model, Pack, SizeStock } from "@/shared/stock";
 
 // Логика поставок. Описание — docs/WAREHOUSE.md, раздел «Поставки».
 
@@ -21,16 +21,30 @@ export function shortModelName(name: string) {
 }
 
 /** Размеры, которые уже встречаются в категории: подсказка для новой модели. */
-export function categorySizes(models: Model[], category: string) {
-  const all = models.filter((m) => m.category === category).flatMap((m) => m.sizes.map((s) => s.size));
+export function categorySizes(models: Model[], categoryId: string | null) {
+  const all = models.filter((m) => m.categoryId === categoryId).flatMap((m) => m.sizes.map((s) => s.size));
   return [...new Set(all)].sort(compareSizes);
+}
+
+/** Категория новой модели в строке поставки: уже заведённая или новая по названию. */
+export const lineCategory = (line: DeliveryLine, categories: Category[]) =>
+  categories.find((c) => c.id === line.newProduct.categoryId);
+
+/** Что написано в поле «Категория» у новой модели. */
+export const lineCategoryText = (line: DeliveryLine, categories: Category[]) =>
+  line.newProduct.categoryName ?? lineCategory(line, categories)?.name ?? "";
+
+/** Вписали категорию: совпала с заведённой (без учёта регистра) — ссылка на неё, иначе заведётся новая. */
+export function setLineCategory(line: DeliveryLine, text: string, categories: Category[]): DeliveryLine {
+  const same = categories.find((c) => c.name.trim().toLowerCase() === text.trim().toLowerCase());
+  return { ...line, newProduct: { ...line.newProduct, categoryId: same?.id ?? null, categoryName: text } };
 }
 
 export function emptyLine(model?: Model): DeliveryLine {
   return {
     key: newId(),
-    modelId: model?.id ?? null,
-    newModel: { name: "", category: "" },
+    productId: model?.id ?? null,
+    newProduct: { name: "", categoryId: null },
     total: "",
     step: 1,
     // Размеры модели в её порядке, без скрытых.
@@ -53,7 +67,7 @@ export const lineQty = (line: DeliveryLine) => line.sizes.reduce((sum, s) => sum
 
 /** Что мешает собрать пачку; null — можно. */
 export function packProblem(line: DeliveryLine, models: Model[], name: string, sizes: string[]): string | null {
-  const model = models.find((m) => m.id === line.modelId);
+  const model = models.find((m) => m.id === line.productId);
   const taken = [...(model?.packs ?? []), ...linePacks(line)].map((p) => p.name.toLowerCase());
   if (!name.trim()) return "Впишите название пачки";
   if (taken.includes(name.trim().toLowerCase())) return "Такая пачка уже есть";
@@ -85,21 +99,21 @@ export function unitPrice(line: DeliveryLine) {
 }
 
 export function lineModelName(line: DeliveryLine, models: Model[]) {
-  return line.modelId ? (models.find((m) => m.id === line.modelId)?.name ?? "") : line.newModel.name.trim();
+  return line.productId ? (models.find((m) => m.id === line.productId)?.name ?? "") : line.newProduct.name.trim();
 }
 
 /** Что мешает добавить строку; пустой список — всё в порядке. */
 export function lineProblems(line: DeliveryLine, models: Model[]): string[] {
   const problems: string[] = [];
-  if (!line.modelId) {
-    const name = line.newModel.name.trim();
+  if (!line.productId) {
+    const name = line.newProduct.name.trim();
     if (!name) problems.push("Впишите название модели");
     else {
       const same = models.find((m) => m.name.toLowerCase() === name.toLowerCase());
       if (same?.archived) problems.push("Такая модель есть в архиве — верните её в настройках склада");
       else if (same) problems.push("Такая модель уже есть, выберите её из списка");
     }
-    if (!line.newModel.category.trim()) problems.push("Укажите категорию");
+    if (!line.newProduct.categoryId && !line.newProduct.categoryName?.trim()) problems.push("Укажите категорию");
   }
   const total = lineTotal(line);
   if (!line.total.trim() || !Number.isFinite(total) || total <= 0) problems.push("Впишите сумму поставки");
@@ -112,9 +126,9 @@ export function inputProblems(input: DeliveryInput): string[] {
   if (!input.date) problems.push("Укажите дату");
   if (!input.from.trim()) problems.push("Укажите, откуда поставка");
   if (input.lines.length === 0) problems.push("Выберите модель");
-  const ids = input.lines.map((l) => l.modelId).filter(Boolean);
+  const ids = input.lines.map((l) => l.productId).filter(Boolean);
   if (new Set(ids).size !== ids.length) problems.push("Одна модель выбрана дважды");
-  const newNames = input.lines.filter((l) => !l.modelId).map((l) => l.newModel.name.trim().toLowerCase()).filter(Boolean);
+  const newNames = input.lines.filter((l) => !l.productId).map((l) => l.newProduct.name.trim().toLowerCase()).filter(Boolean);
   if (new Set(newNames).size !== newNames.length) problems.push("Две новые модели с одинаковым названием");
   return problems;
 }
@@ -124,7 +138,7 @@ export const isInputReady = (input: DeliveryInput, models: Model[]) =>
 
 /** Поставки той же модели на ту же дату: возможно, это дубль. */
 export function findDuplicate(line: DeliveryLine, date: string, models: Model[]) {
-  const model = models.find((m) => m.id === line.modelId);
+  const model = models.find((m) => m.id === line.productId);
   const existing = model?.batches.find((b) => !b.cancelledAt && b.date === date);
   if (!existing) return null;
   const qty = Object.fromEntries(existing.delivered.map((d) => [d.size, d.qty]));
@@ -144,25 +158,43 @@ export function uniqueBatchName(model: Model, base: string) {
 
 /** Как будет называться поставка этой строки: «Клёш 14.11», при повторе — «Клёш 14.11 (2)». */
 export function batchNameFor(line: DeliveryLine, date: string, models: Model[]) {
-  const model = models.find((m) => m.id === line.modelId);
-  const base = `${shortModelName(model?.name ?? line.newModel.name)} ${formatDay(date)}`;
+  const model = models.find((m) => m.id === line.productId);
+  const base = `${shortModelName(model?.name ?? line.newProduct.name)} ${formatDay(date)}`;
   return model ? uniqueBatchName(model, base) : base;
 }
 
-/** Добавить поставки на склад: из каждой строки — своя поставка своей модели. */
-export function applyDelivery(models: Model[], input: DeliveryInput, now = new Date().toISOString()): Model[] {
-  let next = [...models];
+/**
+ * Добавить поставки на склад: из каждой строки — своя поставка своей модели. Новая модель — новый товар каталога
+ * (id из названия, поля бота пустые); новая категория по названию — тоже заводится.
+ */
+export function applyDelivery(
+  state: { models: Model[]; categories: Category[] },
+  input: DeliveryInput,
+  now = new Date().toISOString(),
+): { models: Model[]; categories: Category[] } {
+  let next = [...state.models];
+  let categories = state.categories;
   for (const line of input.lines) {
-    let model = next.find((m) => m.id === line.modelId);
+    let model = next.find((m) => m.id === line.productId);
     if (!model) {
-      model = { id: newId(), name: line.newModel.name.trim(), category: line.newModel.category.trim(), batches: [], sizes: [] };
+      let category = categories.find((c) => c.id === line.newProduct.categoryId);
+      if (!category) {
+        const name = line.newProduct.categoryName?.trim() || "Без категории";
+        category =
+          categories.find((c) => c.name.toLowerCase() === name.toLowerCase()) ??
+          { id: newCategoryId(name, categories), name, sizes: [], thresholds: DEFAULT_THRESHOLDS };
+        if (!categories.includes(category)) categories = [...categories, category];
+      }
+      model = newModel(line.newProduct.name.trim(), category.id, [], next);
       next = [...next, model];
     }
+    const current: Model = model;
     const delivered = line.sizes.filter((s) => sizeQty(line, s) > 0).map((s) => ({ size: s, qty: sizeQty(line, s) }));
     const usedPacks = linePacks(line).filter((p) => p.count > 0).map((p) => ({ name: p.name, count: p.count }));
     const batch: Batch = {
       id: newId(),
-      name: uniqueBatchName(model, `${shortModelName(model.name)} ${formatDay(input.date)}`),
+      productId: current.id,
+      name: uniqueBatchName(current, `${shortModelName(current.name)} ${formatDay(input.date)}`),
       date: input.date,
       from: input.from.trim(),
       total: lineTotal(line),
@@ -171,19 +203,19 @@ export function applyDelivery(models: Model[], input: DeliveryInput, now = new D
       addedAt: now,
       ...(usedPacks.length ? { packs: usedPacks } : {}),
     };
-    const sizes: SizeStock[] = model.sizes.map((s) => ({ ...s }));
+    const sizes: SizeStock[] = current.sizes.map((s) => ({ ...s }));
     for (const d of delivered) {
       const existing = sizes.find((s) => s.size === d.size);
       if (existing) existing.stock = [...existing.stock, { batchId: batch.id, qty: d.qty }];
       else sizes.push({ size: d.size, stock: [{ batchId: batch.id, qty: d.qty }], units: [] });
     }
     // Пришли джинсы скрытого размера — размер снова показываем: скрытым может быть только пустой.
-    const hiddenSizes = model.hiddenSizes?.filter((s) => !delivered.some((d) => d.size === s));
-    const packs = packsToSave(model, line);
-    const updated = { ...model, batches: [...model.batches, batch], sizes, hiddenSizes, ...(packs.length ? { packs } : {}) };
+    const hiddenSizes = current.hiddenSizes?.filter((s) => !delivered.some((d) => d.size === s));
+    const packs = packsToSave(current, line);
+    const updated: Model = { ...current, batches: [...current.batches, batch], sizes, hiddenSizes, ...(packs.length ? { packs } : {}) };
     next = next.map((m) => (m.id === updated.id ? updated : m));
   }
-  return next;
+  return { models: next, categories };
 }
 
 /** Отменить можно, пока из поставки ничего не ушло: всё на полке, ни одного заказа. */
