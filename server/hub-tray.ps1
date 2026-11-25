@@ -15,10 +15,13 @@ $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$Server = $PSScriptRoot                                # ...\avito\hub-bro\server
-$Avito = Split-Path (Split-Path $Server)               # ...\avito
+$Server = $PSScriptRoot                                # ...\hub-bro\server
+$Hub = Split-Path $Server                              # ...\hub-bro
+$Avito = Split-Path $Hub                               # папка avito, если хаб стоит в ней (avito\data + avito\hub-bro)
+# Где data: рядом с хабом (avito\data) или внутри него (ветка gri_version: hub-bro\data).
+$DataDir = if (Test-Path (Join-Path $Avito "data\server")) { Join-Path $Avito "data" } else { Join-Path $Hub "data" }
 $HubLog = Join-Path $Server "server.log"
-$DataLog = Join-Path $Avito "data\server\data.log"
+$DataLog = Join-Path $DataDir "server\data.log"
 $TrayLog = Join-Path $Server "hub-tray.log"
 $Ts = "$env:ProgramFiles\Tailscale\tailscale.exe"
 
@@ -115,7 +118,7 @@ function RunAdmin($cmd, $what) {
 
 $toggleItem.add_Click({
     if ($script:hubUp) {
-        $keepData = Test-Path (Join-Path $Avito "bot")
+        $keepData = Test-Path (Join-Path $Avito "bot")   # бот стоит рядом (папка avito) — ему нужен сервер данных
         $msg = "Выключить HUB BRO? Кабинет перестанет открываться у всех до перезагрузки компьютера или до «Включить хаб»." +
                $(if ($keepData) { "`n`nСервер данных останется работать — он нужен боту." } else { "" })
         $ok = [System.Windows.Forms.MessageBox]::Show($msg, "HUB BRO", "YesNo", "Warning")
