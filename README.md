@@ -138,8 +138,15 @@ Start-ScheduledTask -TaskName HubBroTray
 cd $dir
 git pull
 cd web; npm ci; npm run build
-schtasks /End /TN HubBroServer; schtasks /Run /TN HubBroServer
 ```
+Перезапуск — хаб **и сервер данных** (сервер данных работает отдельным процессом: `schtasks /End` его не
+останавливает, без второй строки он остался бы на старом коде до перезагрузки):
+```powershell
+schtasks /End /TN HubBroServer
+Get-CimInstance Win32_Process -Filter "name='node.exe'" | Where-Object { $_.CommandLine -match 'server\\server\.mjs' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+schtasks /Run /TN HubBroServer
+```
+То же самое делает значок в трее → «Перезапустить хаб».
 Данные (`data\store`), ключ доступа и логи при обновлении не трогаются. Если обновилось расширение — повторить шаг 7
 (скопировать заново и вписать адрес) и нажать «Обновить» у расширения в `chrome://extensions`.
 
@@ -162,6 +169,6 @@ schtasks /End /TN HubBroServer; schtasks /Run /TN HubBroServer
 - **Путь «не найден»** — буква диска латинская `C`, не русская `С`.
 - **`git pull` пишет «local changes would be overwritten»** — в папке с кодом что-то меняли (например, расширение);
   вернуть как было: `git checkout -- .` (данные в `data\store` это не трогает), затем снова `git pull`.
-- **Папку не удалить** — хаб работает от SYSTEM и держит файлы: сначала
-  `schtasks /End /TN HubBroServer; schtasks /Delete /TN HubBroServer /F; schtasks /Delete /TN HubBroTray /F`,
-  затем остановить `node.exe` в Диспетчере задач и удалить папку.
+- **Папку не удалить** — хаб и сервер данных работают от SYSTEM и держат файлы: снять задачи и остановить их
+  (две строки из «Обновления», затем `schtasks /Delete /TN HubBroServer /F; schtasks /Delete /TN HubBroTray /F`),
+  закрыть значок в трее («Убрать значок») и удалить папку.
