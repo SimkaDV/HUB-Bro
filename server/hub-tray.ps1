@@ -1,12 +1,15 @@
-﻿# Значок HUB BRO в трее (область уведомлений Windows). Сам хаб и сервер данных работают как задача HubBroServer
-# от имени SYSTEM — такие процессы значков показывать не могут, поэтому значок — отдельная маленькая программа
-# в сеансе пользователя. Без Python и других зависимостей: только PowerShell и Windows Forms.
+﻿# Значок HUB BRO в трее (область уведомлений Windows). Без Python и других зависимостей: только PowerShell и Windows Forms.
+# Кто запускает хаб — зависит от установки:
+#   - папка avito (deploy.sh: avito\data + avito\hub-bro): хаб работает от имени пользователя и сам не стартует —
+#     его поднимает ярлык «HUB BRO» (open_hub.vbs) или «Включить хаб» здесь. Права администратора не нужны.
+#   - хаб с data внутри (ветка gri_version, README): задача HubBroServer от SYSTEM при включении компьютера. Такие процессы
+#     значков показывать не могут, поэтому значок — отдельная программа в сеансе пользователя, а «Выключить»,
+#     «Включить» и «Перезапустить» спрашивают права администратора.
 #
 # Цвет: зелёный — хаб и сервер данных работают; жёлтый — работает только одно; красный — ничего.
-# Меню: состояние, «Открыть кабинет», «Выключить хаб» / «Включить хаб», «Перезапустить хаб» (всё это спросит права
-# администратора — хаб работает от SYSTEM), «Открыть лог хаба», «Открыть лог сервера данных», «Убрать значок».
-# «Выключить хаб» — до перезагрузки (при включении компьютера хаб стартует сам). Сервер данных при этом остаётся, если на
-# компьютере стоит бот: он нужен боту и приложению BOT BRO; без бота выключается и он.
+# Меню: состояние, «Открыть кабинет», «Выключить хаб» / «Включить хаб», «Перезапустить хаб», «Открыть лог хаба»,
+# «Открыть лог сервера данных», «Убрать значок». Сервер данных при «Выключить хаб» остаётся, если на компьютере стоит бот:
+# он нужен боту и приложению BOT BRO; без бота выключается и он.
 #
 # Запуск при входе в Windows — задача HubBroTray (её создаёт deploy.sh), вручную — hub-tray.vbs (без окна).
 # Файл сохранён в UTF-8 с BOM: иначе Windows PowerShell 5.1 прочитает русский текст как «кракозябры».
@@ -19,7 +22,8 @@ $Server = $PSScriptRoot                                # ...\hub-bro\server
 $Hub = Split-Path $Server                              # ...\hub-bro
 $Avito = Split-Path $Hub                               # папка avito, если хаб стоит в ней (avito\data + avito\hub-bro)
 # Где data: рядом с хабом (avito\data) или внутри него (ветка gri_version: hub-bro\data).
-$DataDir = if (Test-Path (Join-Path $Avito "data\server")) { Join-Path $Avito "data" } else { Join-Path $Hub "data" }
+$UserMode = Test-Path (Join-Path $Avito "data\server")   # папка avito: хаб от имени пользователя (см. выше)
+$DataDir = if ($UserMode) { Join-Path $Avito "data" } else { Join-Path $Hub "data" }
 $HubLog = Join-Path $Server "server.log"
 $DataLog = Join-Path $DataDir "server\data.log"
 $TrayLog = Join-Path $Server "hub-tray.log"
@@ -109,8 +113,16 @@ function Refresh {
 
 $openItem.add_Click({ Start-Process (HubUrl) })
 
+# Как включить хаб: папка avito — run-server.cmd от имени пользователя (без окна), иначе — задача HubBroServer.
+$StartCmd = if ($UserMode) { "Start-Process -WindowStyle Hidden -FilePath '$(Join-Path $Server "run-server.cmd")'" }
+            else { "schtasks /Run /TN HubBroServer | Out-Null" }
+
 # Команда с правами администратора (задача HubBroServer работает от SYSTEM). Windows спросит разрешение.
+# В папке avito (хаб от имени пользователя) та же команда выполняется здесь же, без прав администратора.
 function RunAdmin($cmd, $what) {
+    if ($UserMode) {
+        try { & ([scriptblock]::Create($cmd)); return $true } catch { Log "$what failed: $($_.Exception.Message)"; return $false }
+    }
     $enc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($cmd))
     try { Start-Process powershell -Verb RunAs -WindowStyle Hidden -ArgumentList "-NoProfile -EncodedCommand $enc"; return $true }
     catch { Log "$what cancelled: $($_.Exception.Message)"; return $false }
@@ -119,15 +131,17 @@ function RunAdmin($cmd, $what) {
 $toggleItem.add_Click({
     if ($script:hubUp) {
         $keepData = Test-Path (Join-Path $Avito "bot")   # бот стоит рядом (папка avito) — ему нужен сервер данных
-        $msg = "Выключить HUB BRO? Кабинет перестанет открываться у всех до перезагрузки компьютера или до «Включить хаб»." +
+        $until = if ($UserMode) { "до ярлыка «HUB BRO» или «Включить хаб»" } else { "до перезагрузки компьютера или до «Включить хаб»" }
+        $msg = "Выключить HUB BRO? Кабинет перестанет открываться у всех $until." +
                $(if ($keepData) { "`n`nСервер данных останется работать — он нужен боту." } else { "" })
         $ok = [System.Windows.Forms.MessageBox]::Show($msg, "HUB BRO", "YesNo", "Warning")
         if ($ok -ne "Yes") { return }
         Log "turn off requested (keep data server: $keepData)"
         # хаб — node с «server\server.mjs» без «data\» перед ним; сервер данных — «data\server\server.mjs»
         $pattern = if ($keepData) { '(?<!data\\)server\\server\.mjs' } else { 'server\\server\.mjs' }
+        $end = if ($UserMode) { "" } else { "schtasks /End /TN HubBroServer | Out-Null" }
         $cmd = @"
-schtasks /End /TN HubBroServer | Out-Null
+$end
 Get-CimInstance Win32_Process -Filter "name='node.exe'" | Where-Object { `$_.CommandLine -match '$pattern' } |
   ForEach-Object { Stop-Process -Id `$_.ProcessId -Force -ErrorAction SilentlyContinue }
 "@
@@ -136,7 +150,7 @@ Get-CimInstance Win32_Process -Filter "name='node.exe'" | Where-Object { `$_.Com
         }
     } else {
         Log "turn on requested"
-        if (RunAdmin "schtasks /Run /TN HubBroServer | Out-Null" "turn on") {
+        if (RunAdmin $StartCmd "turn on") {
             $tray.ShowBalloonTip(5000, "HUB BRO", "Хаб включается — около 10 секунд.", [System.Windows.Forms.ToolTipIcon]::Info)
         }
     }
@@ -144,14 +158,15 @@ Get-CimInstance Win32_Process -Filter "name='node.exe'" | Where-Object { `$_.Com
 })
 $restartItem.add_Click({
     Log "restart requested"
-    # Задача работает от SYSTEM: остановить и запустить её можно только с правами администратора (Windows спросит).
-    $cmd = @'
-schtasks /End /TN HubBroServer | Out-Null
+    # Задача от SYSTEM: остановить и запустить её можно только с правами администратора (Windows спросит).
+    $end = if ($UserMode) { "" } else { "schtasks /End /TN HubBroServer | Out-Null" }
+    $cmd = $end + @'
+
 Get-CimInstance Win32_Process -Filter "name='node.exe'" | Where-Object { $_.CommandLine -match 'server\\server\.mjs' } |
   ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 Start-Sleep 2
-schtasks /Run /TN HubBroServer | Out-Null
-'@
+
+'@ + $StartCmd
     if (RunAdmin $cmd "restart") {
         $tray.ShowBalloonTip(5000, "HUB BRO", "Хаб перезапускается — около 10 секунд.", [System.Windows.Forms.ToolTipIcon]::Info)
     }
